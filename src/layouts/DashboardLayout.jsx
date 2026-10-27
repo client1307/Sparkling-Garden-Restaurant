@@ -102,7 +102,7 @@ export default function DashboardLayout({ role = 'admin' }) {
             {/* Main Content Area */}
             <main className="flex-1 overflow-y-auto w-full flex flex-col md:pl-64 min-h-screen relative">
                 <OfflineBanner />
-                <div className="p-4 md:p-8 pb-32 max-w-7xl mx-auto w-full animate-in fade-in duration-300">
+                <div className="p-4 md:p-8 pb-32 max-w-7xl mx-auto w-full">
                     {/* Mobile Header */}
                     <header className="mb-6 flex justify-between items-center md:hidden bg-white p-4 rounded-2xl border border-[#EBEBEB] shadow-xs">
                         <div className="flex items-center gap-2.5">

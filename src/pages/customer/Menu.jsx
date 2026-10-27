@@ -74,19 +74,28 @@ const Menu = () => {
 
     return (
         <div className="min-h-screen bg-[#F4F6F0] text-[#222222] font-body pb-32">
-            {/* Header Row */}
-            <header className="pt-2 mb-6 flex items-end justify-between">
-                <div>
-                    <h1 className="font-extrabold text-3xl sm:text-4xl text-[#222222] tracking-tight">
-                        Our Menu
-                    </h1>
-                    <p className="text-xs text-[#818181] mt-1 font-medium">Crafted with fresh botanical herbs &amp; spices</p>
+            {/* Restaurant Brand Banner with Official Logo */}
+            <div className="mb-6 relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#1C2B1A] via-[#2D4226] to-[#1C2B1A] text-white p-5 shadow-[0_12px_32px_rgba(47,68,40,0.18)] border border-[#5A724A]/30">
+                <div className="flex items-center justify-between gap-3 relative z-10">
+                    <div className="flex-1">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#BCE2A3]/20 border border-[#BCE2A3]/30 text-[10px] font-bold text-[#BCE2A3] uppercase tracking-wider mb-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#BCE2A3] animate-pulse" />
+                            Table {tableId || 'Guest'} · Dine-In
+                        </span>
+                        <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-white">The Sparkling Menu</h2>
+                        <p className="text-[11px] text-white/75 mt-0.5 line-clamp-1">
+                            100% Pure Veg Garden Restaurant · Deesa
+                        </p>
+                    </div>
+                    <div className="bg-white p-2 rounded-2xl shadow-md border border-white/20 shrink-0">
+                        <img 
+                            src="/images/sparkling-logo-dark.png" 
+                            alt="The Sparkling" 
+                            className="h-10 w-auto object-contain" 
+                        />
+                    </div>
                 </div>
-                <div className="flex items-center gap-1.5 bg-white border border-[#EBEBEB] px-3 py-1 rounded-full shadow-xs">
-                    <div className="bg-[#5A724A] w-2 h-2 rounded-full animate-pulse" />
-                    <span className="text-[#5A724A] text-[11px] font-bold tracking-tight">Kitchen Active</span>
-                </div>
-            </header>
+            </div>
 
             {/* Search Bar - Pill-shaped */}
             <div className="mb-6">

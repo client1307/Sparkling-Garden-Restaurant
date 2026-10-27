@@ -11,17 +11,17 @@ export default function CustomerLayout() {
             
             {/* Top Navbar */}
             <nav className="sticky top-0 z-50 border-b border-[#EBEBEB] bg-white/90 backdrop-blur-md px-5 py-4 flex justify-between items-center transition-all">
-                <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-[#5A724A] flex items-center justify-center text-white text-sm shadow-xs font-bold">
-                        ✨
+                <a href="/" className="flex items-center gap-2.5 group">
+                    <img 
+                        src="/images/sparkling-logo-dark.png" 
+                        alt="The Sparkling Garden Restaurant" 
+                        className="h-10 w-auto object-contain transition-transform group-hover:scale-105" 
+                    />
+                    <div className="border-l border-[#EBEBEB] pl-2.5 hidden sm:block">
+                        <span className="text-[10px] uppercase tracking-wider text-[#5A724A] font-extrabold block">Garden Restaurant</span>
+                        <span className="text-[9px] text-[#818181] font-medium block">Digital Guest Menu</span>
                     </div>
-                    <div>
-                        <h1 className="text-base font-extrabold tracking-tight text-[#222222] leading-none">
-                            The Sparkling
-                        </h1>
-                        <span className="text-[10px] uppercase tracking-wider text-[#818181] font-semibold">Artisan Kitchen</span>
-                    </div>
-                </div>
+                </a>
 
                 <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-[#5A724A] animate-pulse" />

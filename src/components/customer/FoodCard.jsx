@@ -3,6 +3,65 @@ import { Plus, Minus, Star, Flame, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const CATEGORY_IMAGES = {
+    'Paneer Dish': 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?auto=format&fit=crop&w=800&q=80',
+    'Starters': 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?auto=format&fit=crop&w=800&q=80',
+    'Chinese': 'https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=800&q=80',
+    'Tandoor': 'https://images.unsplash.com/photo-1626074353765-517a681e40be?auto=format&fit=crop&w=800&q=80',
+    'Rice & Pulao': 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=800&q=80',
+    'Sizzler': 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
+    'Pizza': 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=800&q=80',
+    'Sandwich': 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=800&q=80',
+    'Soup': 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80',
+    'Beverages': 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80',
+    'Milk Shake': 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=800&q=80',
+    'Salad & Raita': 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+    'Kaju Dish': 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=800&q=80',
+    'Indian Dishes': 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=800&q=80',
+    'Kofta': 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=800&q=80',
+    'Baked Dishes': 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=800&q=80',
+    'Platter & Fix Lunch': 'https://images.unsplash.com/photo-1610057099431-d73a1c9d2f2f?auto=format&fit=crop&w=800&q=80',
+};
+
+const getDishImage = (item) => {
+    const raw = item.image || item.imageUrl;
+    if (raw && !raw.includes('placeholder') && !raw.includes('ui-avatars')) {
+        return raw;
+    }
+    const name = (item.name || '').toLowerCase();
+    if (name.includes('biriyani') || name.includes('biryani')) {
+        return 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=800&q=80';
+    }
+    if (name.includes('paneer')) {
+        return 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?auto=format&fit=crop&w=800&q=80';
+    }
+    if (name.includes('sizzler')) {
+        return 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80';
+    }
+    if (name.includes('dal bati') || name.includes('thali') || name.includes('lunch') || name.includes('platter')) {
+        return 'https://images.unsplash.com/photo-1610057099431-d73a1c9d2f2f?auto=format&fit=crop&w=800&q=80';
+    }
+    if (name.includes('naan') || name.includes('roti') || name.includes('parotha') || name.includes('paratha')) {
+        return 'https://images.unsplash.com/photo-1626074353765-517a681e40be?auto=format&fit=crop&w=800&q=80';
+    }
+    if (name.includes('pizza')) {
+        return 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=800&q=80';
+    }
+    if (name.includes('sandwich')) {
+        return 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=800&q=80';
+    }
+    if (name.includes('noodle') || name.includes('manchurian') || name.includes('chilly') || name.includes('fried rice')) {
+        return 'https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=800&q=80';
+    }
+    if (name.includes('soup')) {
+        return 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80';
+    }
+    if (name.includes('lassi') || name.includes('milk') || name.includes('shake') || name.includes('mojito') || name.includes('soda') || name.includes('drink') || name.includes('lagoon')) {
+        return 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80';
+    }
+    return CATEGORY_IMAGES[item.category] || 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=800&q=80';
+};
+
 export const FoodCard = ({ item, onClick }) => {
     const { cartItems, addToCart, removeFromCart, updateQuantity } = useCart();
 
@@ -39,7 +98,7 @@ export const FoodCard = ({ item, onClick }) => {
             {/* Image Box */}
             <div className="relative aspect-[4/3] w-full bg-[#F4F6F0] overflow-hidden shrink-0">
                 <img
-                    src={item.image || item.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=5A724A&color=fff&size=400`}
+                    src={getDishImage(item)}
                     alt={item.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"

@@ -128,6 +128,15 @@ export default function TableSelection() {
                                         {error.bill > 0 && (
                                             <p className="font-mono font-bold mt-1 text-[#5A724A]">Current tab: ₹{error.bill}</p>
                                         )}
+                                        {error.type === 'occupied' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => navigate(`/table/${tableNumber}/menu`)}
+                                                className="mt-2 text-xs font-bold text-[#5A724A] bg-white border border-amber-300 px-3 py-1.5 rounded-full hover:bg-[#5A724A] hover:text-white transition-all shadow-xs inline-block"
+                                            >
+                                                Seated here? View Menu &amp; Order More →
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </motion.div>

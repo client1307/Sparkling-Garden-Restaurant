@@ -20,16 +20,40 @@ const getLocalNetworkIP = () => {
     return 'localhost'; // absolute fallback
 };
 
-// Build QR-safe frontend URL — prioritizes public/non-localhost FRONTEND_URL, fallback to local network IP
+// Build QR-safe frontend URL — cleans whitespace/newlines, prioritizes public URL, fallback to Vercel/LAN
 const getFrontendUrl = (req) => {
-    // 1. If FRONTEND_URL is explicitly set and is NOT localhost/127.0.0.1, use it
-    if (process.env.FRONTEND_URL && 
-        !process.env.FRONTEND_URL.includes('localhost') && 
-        !process.env.FRONTEND_URL.includes('127.0.0.1')) {
-        return process.env.FRONTEND_URL.replace(/\/+$/, '');
+    // 1. If FRONTEND_URL is set in environment (handles newlines, carriage returns, commas)
+    if (process.env.FRONTEND_URL) {
+        const urls = process.env.FRONTEND_URL
+            .split(',')
+            .map(u => u.trim().replace(/[\r\n\t]+/g, '').replace(/\/+$/, ''))
+            .filter(Boolean);
+
+        const prodUrl = urls.find(u => !u.includes('localhost') && !u.includes('127.0.0.1'));
+        if (prodUrl) {
+            return prodUrl;
+        }
     }
 
-    // 2. Detect frontend port from origin or referer (e.g., 5173, 5174)
+    // 2. Detect from request origin or referer (e.g. from Vercel admin panel)
+    if (req) {
+        const originHeader = req.headers.origin || req.headers.referer;
+        if (originHeader) {
+            try {
+                const parsed = new URL(originHeader);
+                if (parsed.hostname !== 'localhost' && parsed.hostname !== '127.0.0.1') {
+                    return `${parsed.protocol}//${parsed.host}`;
+                }
+            } catch (e) {}
+        }
+    }
+
+    // 3. Fallback for deployed production environments (Render)
+    if (process.env.RENDER || process.env.NODE_ENV === 'production') {
+        return 'https://sparkling-garden-restaurant.vercel.app';
+    }
+
+    // 4. Fallback to machine's active local network IPv4 address for local dev
     let frontendPort = '5173';
     if (req) {
         const originHeader = req.headers.origin || req.headers.referer;
@@ -37,15 +61,9 @@ const getFrontendUrl = (req) => {
             try {
                 const parsed = new URL(originHeader);
                 if (parsed.port) frontendPort = parsed.port;
-                // If accessed via actual IP or domain, use that exact origin
-                if (parsed.hostname !== 'localhost' && parsed.hostname !== '127.0.0.1') {
-                    return `${parsed.protocol}//${parsed.hostname}${parsed.port ? `:${parsed.port}` : ''}`;
-                }
             } catch (e) {}
         }
     }
-
-    // 3. Fallback to machine's active local network IPv4 address
     const ip = getLocalNetworkIP();
     return `http://${ip}:${frontendPort}`;
 };

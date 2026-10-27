@@ -121,10 +121,20 @@ const deductInventoryForOrder = async (orderItems) => {
         throw new Error("Insufficient stock to complete order. Please try again.");
     }
 
-    // 2. TRIGGER AUTO-DISABLE CHECK (Optimistic)
-    // We don't await this to keep response fast, or we await if we want strict consistency.
-    // For critical business logic, let's await it.
-    await syncAllMenuItems();
+    // 2. TRIGGER AUTO-DISABLE CHECK (Asynchronous Background Job)
+    // Run asynchronously via setImmediate so order placement returns in < 100ms
+    setImmediate(async () => {
+        try {
+            for (const item of orderItems) {
+                const targetId = item.menuItem || item.menuItemId;
+                if (targetId) {
+                    await updateMenuItemDetails(targetId);
+                }
+            }
+        } catch (err) {
+            console.error("[InventoryManager] Background availability update error:", err.message);
+        }
+    });
 };
 
 module.exports = {

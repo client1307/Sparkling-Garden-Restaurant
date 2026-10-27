@@ -21,6 +21,18 @@ const createOrder = async (req, res) => {
     }
 
     try {
+        // 1. Batch fetch all menu items in ONE query to avoid sequential network round-trips
+        const itemIds = items.map(i => i.menuItemId || i.menuItem).filter(id => id && mongoose.Types.ObjectId.isValid(id));
+        const itemNames = items.map(i => i.name).filter(Boolean);
+
+        const queryOr = [];
+        if (itemIds.length > 0) queryOr.push({ _id: { $in: itemIds } });
+        if (itemNames.length > 0) queryOr.push({ name: { $in: itemNames } });
+
+        const menuItemsDocs = queryOr.length > 0 ? await MenuItem.find({ $or: queryOr }).lean() : [];
+        const itemMapById = new Map(menuItemsDocs.map(d => [d._id.toString(), d]));
+        const itemMapByName = new Map(menuItemsDocs.map(d => [d.name.toLowerCase().trim(), d]));
+
         // Verify items and calculate server-side pricing
         const verifiedItems = [];
         let subtotal = 0;
@@ -31,14 +43,9 @@ const createOrder = async (req, res) => {
                 return res.status(400).json({ message: `Invalid quantity for item ${item.name || 'unnamed'}` });
             }
 
-            let menuItemDoc = null;
             const itemId = item.menuItemId || item.menuItem;
-            if (itemId && mongoose.Types.ObjectId.isValid(itemId)) {
-                menuItemDoc = await MenuItem.findById(itemId);
-            }
-            if (!menuItemDoc && item.name) {
-                menuItemDoc = await MenuItem.findOne({ name: item.name });
-            }
+            const menuItemDoc = (itemId && itemMapById.get(itemId.toString())) || 
+                                (item.name && itemMapByName.get(item.name.toLowerCase().trim()));
 
             if (!menuItemDoc) {
                 return res.status(400).json({ message: `Item not found on active menu: ${item.name || itemId}` });
@@ -256,4 +263,80 @@ const markTablePaid = async (req, res) => {
     }
 };
 
-module.exports = { createOrder, getOrders, updateOrderStatus, markTablePaid };
+// @desc    Get active orders & consolidated bill for a specific table (Guest accessible)
+// @route   GET /api/orders/table/:tableId/active
+const getTableActiveOrders = async (req, res) => {
+    try {
+        const tableId = parseInt(req.params.tableId, 10);
+        if (isNaN(tableId)) {
+            return res.status(400).json({ message: 'Valid table number is required' });
+        }
+
+        const orders = await Order.find({
+            tableNumber: tableId,
+            status: { $nin: ['Cancelled'] }
+        }).sort({ createdAt: -1 });
+
+        // Filter active (non-paid) or most recent session
+        const activeOrders = orders.filter(o => o.status !== 'Paid');
+        const displayOrders = activeOrders.length > 0 ? activeOrders : orders.slice(0, 1);
+
+        if (displayOrders.length === 0) {
+            return res.json({
+                hasActiveOrder: false,
+                tableNumber: tableId,
+                orders: [],
+                items: [],
+                subtotal: 0,
+                tax: 0,
+                totalAmount: 0
+            });
+        }
+
+        // Consolidated item list
+        const itemMap = {};
+        let subtotal = 0;
+        let totalAmount = 0;
+
+        displayOrders.forEach(order => {
+            totalAmount += Number(order.totalAmount) || 0;
+            (order.items || []).forEach(item => {
+                const key = item.name;
+                const qty = Number(item.quantity) || 1;
+                const price = Number(item.price) || 0;
+                subtotal += (qty * price);
+
+                if (!itemMap[key]) {
+                    itemMap[key] = {
+                        name: item.name,
+                        quantity: 0,
+                        price: price,
+                        total: 0
+                    };
+                }
+                itemMap[key].quantity += qty;
+                itemMap[key].total += (qty * price);
+            });
+        });
+
+        const tax = subtotal * 0.05;
+
+        res.json({
+            hasActiveOrder: true,
+            tableNumber: tableId,
+            orders: displayOrders,
+            latestStatus: displayOrders[0]?.status || 'Pending',
+            items: Object.values(itemMap),
+            subtotal: Number(subtotal.toFixed(2)),
+            tax: Number(tax.toFixed(2)),
+            totalAmount: Number((totalAmount || (subtotal + tax)).toFixed(2)),
+            orderCount: displayOrders.length,
+            latestOrderId: displayOrders[0]?._id
+        });
+    } catch (error) {
+        console.error("Error fetching table active orders:", error);
+        res.status(500).json({ message: "Failed to retrieve table orders" });
+    }
+};
+
+module.exports = { createOrder, getOrders, updateOrderStatus, markTablePaid, getTableActiveOrders };

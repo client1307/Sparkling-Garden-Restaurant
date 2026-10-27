@@ -58,11 +58,23 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/tables', require('./routes/tableRoutes'));
 app.use('/api/qr', require('./routes/qrRoutes'));
 
-// Home Route
+// Home & Health Routes
 app.get('/', (req, res) => {
     res.send('The Sparkling API is running...');
 });
 app.get('/healthz', (req, res) => res.json({ ok: true }));
+app.get('/api/health', (req, res) => res.json({ status: 'healthy', time: new Date() }));
+
+// Keep-alive: Pings self every 9 minutes to prevent Render free-tier from sleeping
+const https = require('https');
+setInterval(() => {
+    try {
+        const renderUrl = (process.env.RENDER_EXTERNAL_URL || 'https://sparkling-api.onrender.com').replace(/\/+$/, '');
+        https.get(`${renderUrl}/api/health`, (res) => {
+            // Heartbeat consumed silently
+        }).on('error', () => {});
+    } catch (e) {}
+}, 9 * 60 * 1000);
 
 // Error Handling Middleware (Prevent Crashes)
 app.use((err, req, res, next) => {

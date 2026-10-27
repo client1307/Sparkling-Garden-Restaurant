@@ -187,22 +187,22 @@ const Menu = () => {
                 )}
             </div>
 
-            {/* Floating Cart CTA - User-friendly & Prominent */}
+            {/* Mobile Docked Bottom Cart Bar */}
             <AnimatePresence>
                 {totalItems > 0 && (
                     <motion.div 
-                        initial={{ y: 90, x: '-50%' }}
-                        animate={{ y: 0, x: '-50%' }}
-                        exit={{ y: 90, x: '-50%' }}
+                        initial={{ y: 100 }}
+                        animate={{ y: 0 }}
+                        exit={{ y: 100 }}
                         transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-                        className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-md z-50 pointer-events-auto"
+                        className="fixed bottom-0 left-0 right-0 z-50 p-3 sm:pb-4 bg-white/95 backdrop-blur-md border-t border-[#EBEBEB] shadow-[0_-8px_30px_rgba(0,0,0,0.1)] pointer-events-auto"
                     >
-                        <Link to={`/table/${tableId}/cart`} className="block group">
-                            <div className="bg-[#1C2B1A] border border-[#5A724A]/40 text-white rounded-2xl p-3 sm:px-4 flex items-center justify-between shadow-[0_12px_36px_rgba(28,43,26,0.45)] hover:bg-[#152213] transition-all">
+                        <Link to={`/table/${tableId}/cart`} className="block group max-w-md mx-auto">
+                            <div className="bg-[#1C2B1A] border border-[#5A724A]/40 text-white rounded-2xl p-3 sm:px-4 flex items-center justify-between shadow-md hover:bg-[#152213] transition-all">
                                 {/* Left Side: Count & Total Price */}
                                 <div className="flex items-center gap-3">
                                     <div className="bg-[#5A724A] text-white rounded-xl w-10 h-10 flex items-center justify-center relative font-bold shrink-0 shadow-xs">
-                                        <ShoppingBag size={19} />
+                                        <ShoppingBag size={18} />
                                         <span className="absolute -top-1.5 -right-1.5 bg-[#BCE2A3] text-[#1C2B1A] text-[10px] font-black rounded-full px-1.5 py-0.2 min-w-5 h-5 flex items-center justify-center border-2 border-[#1C2B1A]">
                                             {totalItems}
                                         </span>
@@ -212,12 +212,12 @@ const Menu = () => {
                                             <span className="text-[10px] uppercase font-bold tracking-wider text-white/70">Total</span>
                                             <span className="font-mono font-extrabold text-lg text-[#BCE2A3]">₹{total.toFixed(2)}</span>
                                         </div>
-                                        <p className="text-[10px] text-white/60">{totalItems} {totalItems === 1 ? 'item' : 'items'} in order</p>
+                                        <p className="text-[10px] text-white/60">{totalItems} {totalItems === 1 ? 'dish' : 'dishes'} added</p>
                                     </div>
                                 </div>
 
                                 {/* Right Side: View Cart CTA */}
-                                <div className="flex items-center gap-1.5 bg-[#5A724A] group-hover:bg-[#485D3B] text-white px-3.5 py-2 rounded-xl text-xs font-bold tracking-wide transition-colors shadow-xs">
+                                <div className="flex items-center gap-1.5 bg-[#5A724A] group-hover:bg-[#485D3B] text-white px-4 py-2 rounded-xl text-xs font-bold tracking-wide transition-colors shadow-xs">
                                     <span>View Cart</span>
                                     <ChevronRight size={15} />
                                 </div>

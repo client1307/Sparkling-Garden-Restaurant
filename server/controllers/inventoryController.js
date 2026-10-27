@@ -65,17 +65,21 @@ const addInventoryItem = async (req, res) => {
     try {
         const { name, quantity, unit, threshold } = req.body;
 
-        // check if exists
-        const exists = await Inventory.findOne({ name });
+        if (!name || !name.trim()) {
+            return res.status(400).json({ message: 'Item name is required' });
+        }
+
+        // check if exists case-insensitively
+        const exists = await Inventory.findOne({ name: new RegExp(`^${name.trim()}$`, 'i') });
         if (exists) {
-            return res.status(400).json({ message: 'Item already exists' });
+            return res.status(400).json({ message: `Inventory item "${name.trim()}" already exists` });
         }
 
         const newItem = new Inventory({
-            name,
-            quantity,
-            unit,
-            threshold
+            name: name.trim(),
+            quantity: Number(quantity) || 0,
+            unit: (unit || 'kg').trim(),
+            threshold: Number(threshold) >= 0 ? Number(threshold) : 5
         });
 
         const createdItem = await newItem.save();
@@ -86,7 +90,8 @@ const addInventoryItem = async (req, res) => {
 
         res.status(201).json(createdItem);
     } catch (error) {
-        res.status(500).json({ message: 'Error adding inventory item', error: error.message });
+        console.error('Error adding inventory item:', error);
+        res.status(500).json({ message: error.message || 'Error adding inventory item' });
     }
 };
 
@@ -97,27 +102,28 @@ const updateInventoryItem = async (req, res) => {
         const { name, quantity, unit, threshold } = req.body;
         const item = await Inventory.findById(req.params.id);
 
-        if (item) {
-            item.name = name || item.name;
-            item.quantity = quantity !== undefined ? quantity : item.quantity;
-            item.unit = unit || item.unit;
-            item.threshold = threshold !== undefined ? threshold : item.threshold;
-
-            const updatedItem = await item.save();
-
-            // Sync menu availability
-            await syncAllMenuItems();
-
-            // Emit update
-            const io = req.app.get('socketio');
-            if (io) io.emit('menu_updated');
-
-            res.json(updatedItem);
-        } else {
-            res.status(404).json({ message: 'Item not found' });
+        if (!item) {
+            return res.status(404).json({ message: 'Item not found' });
         }
+
+        if (name && name.trim()) item.name = name.trim();
+        if (quantity !== undefined) item.quantity = Number(quantity) || 0;
+        if (unit && unit.trim()) item.unit = unit.trim();
+        if (threshold !== undefined) item.threshold = Number(threshold) >= 0 ? Number(threshold) : item.threshold;
+
+        const updatedItem = await item.save();
+
+        // Sync menu availability
+        await syncAllMenuItems();
+
+        // Emit update
+        const io = req.app.get('socketio');
+        if (io) io.emit('menu_updated');
+
+        res.json(updatedItem);
     } catch (error) {
-        res.status(500).json({ message: 'Error updating inventory item', error: error.message });
+        console.error('Error updating inventory item:', error);
+        res.status(500).json({ message: error.message || 'Error updating inventory item' });
     }
 };
 

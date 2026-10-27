@@ -23,6 +23,16 @@ const InventoryPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
 
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        if (location.pathname.includes('menu')) {
+            setActiveTab('menu');
+        } else if (location.pathname.includes('inventory')) {
+            setActiveTab('inventory');
+        }
+    }, [location.pathname]);
+
     const fetchData = async () => {
         setIsLoading(true);
         try {
@@ -78,36 +88,48 @@ const InventoryPage = () => {
         try {
             if (activeTab === 'inventory') {
                 await api.delete(`/inventory/${id}`);
+                toast.success('Inventory item removed');
             } else {
                 await api.delete(`/menu/${id}`);
+                toast.success('Menu dish removed');
             }
             fetchData();
         } catch (err) {
             console.error("Delete failed:", err);
-            alert("Failed to delete item.");
+            toast.error(err.response?.data?.message || 'Failed to delete item.');
         }
     };
 
     const handleSave = async (data) => {
+        setIsSaving(true);
         try {
+            const targetId = editingItem?._id || editingItem?.id;
             if (activeTab === 'inventory') {
-                if (editingItem) {
-                    await api.put(`/inventory/${editingItem._id}`, data);
+                if (targetId) {
+                    await api.put(`/inventory/${targetId}`, data);
+                    toast.success(`"${data.name}" updated successfully!`);
                 } else {
                     await api.post('/inventory', data);
+                    toast.success(`"${data.name}" added to inventory!`);
                 }
             } else {
-                if (editingItem) {
-                    await api.put(`/menu/${editingItem._id}`, data);
+                if (targetId) {
+                    await api.put(`/menu/${targetId}`, data);
+                    toast.success(`"${data.name}" updated successfully!`);
                 } else {
                     await api.post('/menu', data);
+                    toast.success(`"${data.name}" added to menu!`);
                 }
             }
             setIsModalOpen(false);
+            setEditingItem(null);
             fetchData();
         } catch (err) {
             console.error("Save failed:", err);
-            alert("Failed to save. Check console.");
+            const msg = err.response?.data?.message || 'Failed to save. Please verify all inputs.';
+            toast.error(msg);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -304,16 +326,20 @@ const InventoryPage = () => {
             >
                 {activeTab === 'inventory' ? (
                     <InventoryForm
+                        key={editingItem ? (editingItem._id || editingItem.id) : 'new-inventory'}
                         initialData={editingItem}
                         onSave={handleSave}
-                        onCancel={() => setIsModalOpen(false)}
+                        onCancel={() => { setIsModalOpen(false); setEditingItem(null); }}
+                        isSaving={isSaving}
                     />
                 ) : (
                     <MenuForm
+                        key={editingItem ? (editingItem._id || editingItem.id) : 'new-menu'}
                         initialData={editingItem}
                         inventoryItems={inventory}
                         onSave={handleSave}
-                        onCancel={() => setIsModalOpen(false)}
+                        onCancel={() => { setIsModalOpen(false); setEditingItem(null); }}
+                        isSaving={isSaving}
                     />
                 )}
             </Modal>

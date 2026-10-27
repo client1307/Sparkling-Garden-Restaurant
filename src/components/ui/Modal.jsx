@@ -23,7 +23,7 @@ export const Modal = ({ isOpen, onClose, title, children }) => {
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
                         className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none p-4"
                     >
-                        <div className="bg-white border border-[#EBEBEB] rounded-3xl w-full max-w-lg shadow-[0_20px_60px_rgba(34,34,34,0.15)] pointer-events-auto flex flex-col max-h-[90vh] overflow-hidden">
+                        <div className="bg-white border border-[#EBEBEB] rounded-3xl w-full max-w-xl shadow-[0_20px_60px_rgba(34,34,34,0.18)] pointer-events-auto flex flex-col max-h-[90vh] overflow-hidden">
                             <div className="px-6 py-5 border-b border-[#EBEBEB] flex justify-between items-center bg-[#F8F8F8]">
                                 <h3 className="text-lg font-bold text-[#222222]">{title}</h3>
                                 <button

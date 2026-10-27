@@ -165,7 +165,13 @@ export default function Home() {
           <nav className="hidden md:flex gap-6 text-sm font-semibold text-[#818181]">
             {['About', 'Services', 'Menu', 'Gallery', 'Contact'].map(n => <a key={n} href={`#${n.toLowerCase()}`} className="hover:text-[#5A724A]">{n}</a>)}
           </nav>
-          <a href="#contact" className="bg-[#5A724A] hover:bg-[#485D3B] text-white text-sm font-bold px-4 py-2 rounded-full transition-colors">Book a Table</a>
+          <div className="flex items-center gap-2">
+            <Link to="/table" className="border border-[#5A724A] text-[#5A724A] hover:bg-[#5A724A] hover:text-white text-xs font-bold px-3.5 py-2 rounded-full transition-all flex items-center gap-1.5 shadow-xs">
+              <QrCode size={14} />
+              <span>Table Menu</span>
+            </Link>
+            <a href="#contact" className="bg-[#5A724A] hover:bg-[#485D3B] text-white text-xs font-bold px-4 py-2 rounded-full transition-colors">Book a Table</a>
+          </div>
         </div>
       </header>
 
@@ -178,7 +184,10 @@ export default function Home() {
             <p className="text-lg text-[#818181] max-w-lg">Snacks, lunch and dinner in a garden setting, plus a party plot, rooms and banquet hall on the Palanpur Highway.</p>
             <div className="flex flex-wrap gap-3">
               <a href={TEL} className="inline-flex items-center gap-2 bg-[#5A724A] hover:bg-[#485D3B] text-white font-bold px-6 py-3 rounded-full"><Phone size={16} />Call {PHONE}</a>
-              <a href="#menu" className="inline-flex items-center gap-2 bg-white border border-[#EBEBEB] hover:bg-[#BCE2A3]/40 font-bold px-6 py-3 rounded-full">View Menu</a>
+              <Link to="/table" className="inline-flex items-center gap-2 bg-white border border-[#EBEBEB] hover:bg-[#BCE2A3]/40 font-bold px-6 py-3 rounded-full text-[#222222]">
+                <QrCode size={16} className="text-[#5A724A]" />
+                Digital QR Menu
+              </Link>
             </div>
           </motion.div>
           <motion.div {...fade} className="relative">
@@ -233,9 +242,9 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <a href="#contact" className="inline-flex items-center gap-2 bg-[#5A724A] hover:bg-[#485D3B] text-white text-sm font-bold px-6 py-3 rounded-full whitespace-nowrap transition-colors shadow-xs">
-            Book a Table
-          </a>
+          <Link to="/table" className="inline-flex items-center gap-2 bg-[#5A724A] hover:bg-[#485D3B] text-white text-sm font-bold px-6 py-3 rounded-full whitespace-nowrap transition-colors shadow-xs">
+            Open Table Menu →
+          </Link>
         </motion.div>
       </section>
 

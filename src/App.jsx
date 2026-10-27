@@ -100,8 +100,8 @@ const AnimatedRoutes = () => {
           <Route path="dashboard" element={<KitchenDashboard />} />
         </Route>
 
-        <Route path="/tables" element={<Navigate to="/" replace />} />
-        <Route path="/table" element={<Navigate to="/" replace />} />
+        <Route path="/tables" element={<Navigate to="/table" replace />} />
+        <Route path="/table" element={<TableSelection />} />
         <Route path="/table/:tableId/*" element={<CustomerLayout />}>
           <Route index element={<Navigate to="menu" replace />} />
           <Route path="menu" element={<Menu />} />

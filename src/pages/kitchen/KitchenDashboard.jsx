@@ -6,6 +6,7 @@ import { Clock, CheckCircle, ChefHat, AlertTriangle, History, ArrowLeft, Utensil
 import clsx from 'clsx';
 import { getKitchenOrders, updateOrderStatus, socket, api } from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatIndiaDate, formatIndiaTime } from '../../utils/dateUtils';
 
 const KitchenDashboard = () => {
     const [orders, setOrders] = useState([]);
@@ -197,8 +198,8 @@ const KitchenDashboard = () => {
                                                     <Badge status={order.status} />
                                                 </td>
                                                 <td className="px-6 py-4 text-xs text-[#818181] font-mono">
-                                                    {date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}{' '}
-                                                    {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    {formatIndiaDate(order.createdAt)}{' '}
+                                                    {formatIndiaTime(order.createdAt)}
                                                 </td>
                                             </tr>
                                         );

@@ -8,6 +8,7 @@ import { Download, FileText, FileSpreadsheet, DollarSign, TrendingUp, Users, Cal
 import { api } from '../../services/api';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 const COLORS = ['#5A724A', '#BCE2A3', '#708C5D', '#D9822B', '#3E5431'];
 
@@ -48,27 +49,32 @@ const Analytics = () => {
         setExportingType(type);
         try {
             let url = '';
-            let ext = 'pdf';
-            let mimeType = 'application/pdf';
+            let ext = exportFormat === 'excel' ? 'xlsx' : exportFormat;
+            let mimeType = exportFormat === 'csv' 
+                ? 'text/csv' 
+                : exportFormat === 'excel' 
+                    ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                    : 'application/pdf';
 
             if (type === 'daily') {
                 url = `/reports/daily?date=${exportStartDate}`;
+                ext = 'pdf';
+                mimeType = 'application/pdf';
             } else if (type === 'monthly') {
                 const d = new Date(exportStartDate);
                 url = `/reports/monthly?month=${d.getMonth() + 1}&year=${d.getFullYear()}`;
+                ext = 'pdf';
+                mimeType = 'application/pdf';
             } else {
                 url = `/reports/export?start=${exportStartDate}&end=${exportEndDate}&format=${exportFormat}`;
-                ext = exportFormat === 'excel' ? 'xlsx' : exportFormat;
-                mimeType = exportFormat === 'csv' 
-                    ? 'text/csv' 
-                    : exportFormat === 'excel' 
-                        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-                        : 'application/pdf';
             }
 
             const response = await api.get(url, { responseType: 'blob' });
             
-            const defaultFilename = `sparkling-${type}-report.${ext}`;
+            const defaultFilename = type === 'custom'
+                ? `sparkling-sales-report-${exportStartDate}-to-${exportEndDate}.${ext}`
+                : `sparkling-${type}-report.${ext}`;
+
             const urlObj = window.URL.createObjectURL(new Blob([response.data], { type: mimeType }));
             const link = document.createElement('a');
             link.href = urlObj;
@@ -77,8 +83,10 @@ const Analytics = () => {
             link.click();
             link.parentNode.removeChild(link);
             window.URL.revokeObjectURL(urlObj);
+            toast.success(`Report downloaded successfully (${ext.toUpperCase()})`);
         } catch (error) {
             console.error(`Failed to export ${type} report:`, error);
+            toast.error(error?.response?.data?.message || `Failed to export ${type} report`);
         } finally {
             setExportingType(null);
         }

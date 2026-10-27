@@ -187,29 +187,39 @@ const Menu = () => {
                 )}
             </div>
 
-            {/* Floating Cart CTA - Pill-shaped Charcoal */}
+            {/* Floating Cart CTA - User-friendly & Prominent */}
             <AnimatePresence>
                 {totalItems > 0 && (
                     <motion.div 
-                        initial={{ y: 80, x: '-50%' }}
+                        initial={{ y: 90, x: '-50%' }}
                         animate={{ y: 0, x: '-50%' }}
-                        exit={{ y: 80, x: '-50%' }}
+                        exit={{ y: 90, x: '-50%' }}
                         transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-                        className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm z-40"
+                        className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-md z-50 pointer-events-auto"
                     >
-                        <Link to={`/table/${tableId}/cart`} className="block">
-                            <div className="bg-[#222222] text-white rounded-full px-5 py-3.5 flex items-center justify-between shadow-[0_10px_30px_rgba(34,34,34,0.3)] hover:bg-black transition-all">
+                        <Link to={`/table/${tableId}/cart`} className="block group">
+                            <div className="bg-[#1C2B1A] border border-[#5A724A]/40 text-white rounded-2xl p-3 sm:px-4 flex items-center justify-between shadow-[0_12px_36px_rgba(28,43,26,0.45)] hover:bg-[#152213] transition-all">
+                                {/* Left Side: Count & Total Price */}
                                 <div className="flex items-center gap-3">
-                                    <div className="bg-[#5A724A] text-white rounded-full w-9 h-9 flex items-center justify-center relative font-bold">
-                                        <ShoppingBag size={18} />
-                                        <div className="absolute -top-1 -right-1 bg-[#BCE2A3] text-[#222222] text-[10px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+                                    <div className="bg-[#5A724A] text-white rounded-xl w-10 h-10 flex items-center justify-center relative font-bold shrink-0 shadow-xs">
+                                        <ShoppingBag size={19} />
+                                        <span className="absolute -top-1.5 -right-1.5 bg-[#BCE2A3] text-[#1C2B1A] text-[10px] font-black rounded-full px-1.5 py-0.2 min-w-5 h-5 flex items-center justify-center border-2 border-[#1C2B1A]">
                                             {totalItems}
-                                        </div>
+                                        </span>
                                     </div>
-                                    <span className="font-semibold text-sm tracking-wide">Review Order</span>
+                                    <div>
+                                        <div className="flex items-baseline gap-1.5">
+                                            <span className="text-[10px] uppercase font-bold tracking-wider text-white/70">Total</span>
+                                            <span className="font-mono font-extrabold text-lg text-[#BCE2A3]">₹{total.toFixed(2)}</span>
+                                        </div>
+                                        <p className="text-[10px] text-white/60">{totalItems} {totalItems === 1 ? 'item' : 'items'} in order</p>
+                                    </div>
                                 </div>
-                                <div className="font-mono font-bold text-base text-[#BCE2A3]">
-                                    ₹{total.toFixed(2)}
+
+                                {/* Right Side: View Cart CTA */}
+                                <div className="flex items-center gap-1.5 bg-[#5A724A] group-hover:bg-[#485D3B] text-white px-3.5 py-2 rounded-xl text-xs font-bold tracking-wide transition-colors shadow-xs">
+                                    <span>View Cart</span>
+                                    <ChevronRight size={15} />
                                 </div>
                             </div>
                         </Link>
@@ -217,12 +227,12 @@ const Menu = () => {
                 )}
             </AnimatePresence>
 
-            {/* AI Assistant FAB Button */}
+            {/* AI Assistant FAB Button (Shifted above cart bar when cart is visible) */}
             <motion.button 
                 whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowAIChat(true)}
-                className="fixed bottom-6 right-4 z-50 w-13 h-13 rounded-full bg-[#5A724A] text-white shadow-[0_6px_24px_rgba(90,114,74,0.35)] flex items-center justify-center group"
+                className={`fixed right-4 z-40 w-12 h-12 rounded-full bg-[#5A724A] text-white shadow-[0_6px_24px_rgba(90,114,74,0.35)] flex items-center justify-center group transition-all duration-300 ${totalItems > 0 ? 'bottom-22' : 'bottom-6'}`}
                 aria-label="Open AI Culinary Concierge"
             >
                 <div className="absolute inset-0 rounded-full border-2 border-[#BCE2A3] animate-ping opacity-40 pointer-events-none" />

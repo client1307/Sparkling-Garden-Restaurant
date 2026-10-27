@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Clock, ChefHat, Package, IndianRupee, Eye, Download } from 'lucide-react';
 import clsx from 'clsx';
 import { Modal } from '../../components/ui/Modal';
+import { formatIndiaTime, formatIndiaDate, formatIndiaDateTime } from '../../utils/dateUtils';
 import toast from 'react-hot-toast';
 
 const STATUS_CONFIG = {
@@ -145,7 +146,7 @@ const AdminOrders = () => {
                                                         #{order._id.slice(-6).toUpperCase()}
                                                     </span>
                                                     <div className="text-[10px] text-[#818181] mt-1 font-mono">
-                                                        {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        {formatIndiaTime(order.createdAt)} • {formatIndiaDate(order.createdAt)}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3.5 border-t border-b border-[#EBEBEB]">
@@ -206,6 +207,9 @@ const AdminOrders = () => {
                             <div>
                                 <h3 className="text-[10px] text-[#818181] uppercase tracking-wider font-bold mb-0.5">Table</h3>
                                 <p className="text-2xl font-bold text-[#5A724A]">Table {selectedOrder.tableNumber}</p>
+                                <p className="text-[10px] text-[#818181] mt-1 font-mono">
+                                    {formatIndiaDateTime(selectedOrder.createdAt)} (IST)
+                                </p>
                             </div>
                             <div className="text-right">
                                 <h3 className="text-[10px] text-[#818181] uppercase tracking-wider font-bold mb-0.5">Total Amount</h3>

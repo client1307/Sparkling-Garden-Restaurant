@@ -4,6 +4,11 @@ Public website (`/`) plus QR ordering, waiter, kitchen (KDS) and admin dashboard
 Based on Herb & Spice: same sage palette and roles (admin, waiter, kitchen, guest).
 Stack: React 19 + Vite + Tailwind 4 (frontend) · Express + Socket.IO + MongoDB (backend).
 
+## Live Production Deployments
+- **Frontend (Vercel)**: [https://sparkling-garden-restaurant.vercel.app](https://sparkling-garden-restaurant.vercel.app)
+- **Backend API (Render)**: [https://sparkling-api.onrender.com](https://sparkling-api.onrender.com)
+- **Database**: MongoDB Atlas Cloud Cluster
+
 ## Routes
 `/` website · `/table` guest QR menu · `/portal` staff entry · `/admin|waiter|kitchen/login`
 

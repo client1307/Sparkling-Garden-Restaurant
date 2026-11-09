@@ -1,0 +1,3 @@
+{ "name": "sparkling-pos", "version": "1.0.0", "main": "main.js", "scripts": { "start": "electron .", "dist": "electron-builder --win" },
+  "devDependencies": { "electron": "^33.0.0", "electron-builder": "^25.0.0" },
+  "build": { "appId": "com.sparkling.pos", "productName": "Sparkling POS", "win": { "target": "nsis" } } }

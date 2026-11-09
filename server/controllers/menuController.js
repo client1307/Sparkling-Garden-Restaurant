@@ -7,7 +7,8 @@ const getMenuItems = async (req, res) => {
     try {
         // Find all items
         // We might want to filter active/inactive but for now return all so Admin can see Disabled ones
-        const items = await MenuItem.find({}).populate('ingredients.ingredientId');
+        const items = await MenuItem.find({})
+            .select('name category price imageUrl description isVeg popularityScore isAvailable');
         res.json(items);
     } catch (error) {
         res.status(500).json({ message: 'Server Error fetching menu' });
@@ -118,4 +119,65 @@ const deleteMenuItem = async (req, res) => {
     }
 };
 
-module.exports = { getMenuItems, seedMenu, addMenuItem, updateMenuItem, deleteMenuItem };
+// @desc    A04: Get All Menu Categories with dish counts
+// @route   GET /api/menu/categories
+const getCategories = async (req, res) => {
+    try {
+        const counts = await MenuItem.aggregate([
+            { $group: { _id: '$category', count: { $sum: 1 }, availableCount: { $sum: { $cond: ['$isAvailable', 1, 0] } } } },
+            { $sort: { _id: 1 } }
+        ]);
+        const categories = counts.map(c => ({
+            name: c._id || 'Uncategorized',
+            count: c.count,
+            availableCount: c.availableCount
+        }));
+        res.json(categories);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching categories', error: error.message });
+    }
+};
+
+// @desc    A04: Rename / Update a Category
+// @route   PUT /api/menu/categories
+const renameCategory = async (req, res) => {
+    try {
+        const { oldName, newName } = req.body;
+        if (!oldName || !newName || !newName.trim()) {
+            return res.status(400).json({ message: 'Old name and new name are required' });
+        }
+        const result = await MenuItem.updateMany(
+            { category: oldName.trim() },
+            { $set: { category: newName.trim() } }
+        );
+        res.json({ message: `Updated ${result.modifiedCount} items to category ${newName.trim()}` });
+    } catch (error) {
+        res.status(500).json({ message: 'Error renaming category', error: error.message });
+    }
+};
+
+// @desc    A04: Delete Category (reassigns items to 'General')
+// @route   DELETE /api/menu/categories/:name
+const deleteCategory = async (req, res) => {
+    try {
+        const categoryName = req.params.name;
+        const result = await MenuItem.updateMany(
+            { category: categoryName },
+            { $set: { category: 'General' } }
+        );
+        res.json({ message: `Category removed. ${result.modifiedCount} items moved to 'General'` });
+    } catch (error) {
+        res.status(500).json({ message: 'Error removing category', error: error.message });
+    }
+};
+
+module.exports = { 
+    getMenuItems, 
+    seedMenu, 
+    addMenuItem, 
+    updateMenuItem, 
+    deleteMenuItem,
+    getCategories,
+    renameCategory,
+    deleteCategory
+};

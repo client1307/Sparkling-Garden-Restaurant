@@ -1,11 +1,16 @@
-import { Outlet, useParams, Link } from 'react-router-dom';
+import { Outlet, useParams, Link, useSearchParams, useLocation } from 'react-router-dom';
 import { OfflineBanner } from '../components/ui/OfflineBanner';
 import { useCart } from '../context/CartContext';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Receipt, Utensils } from 'lucide-react';
 
 export default function CustomerLayout() {
     const { tableId } = useParams();
+    const location = useLocation();
+    const [searchParams] = useSearchParams();
+    const tableToken = searchParams.get('tableToken');
+    if (tableToken) localStorage.setItem('tableToken', tableToken);
     const { totalItems, total } = useCart();
+    const isStatusPage = location.pathname.includes('/status');
 
     return (
         <div className="min-h-screen bg-[#F4F6F0] text-[#222222] pb-24 selection:bg-[#BCE2A3] selection:text-[#222222]">
@@ -27,7 +32,7 @@ export default function CustomerLayout() {
 
                 <div className="flex items-center gap-2">
                     {/* Live Header Cart Button (if items present) */}
-                    {totalItems > 0 && (
+                    {totalItems > 0 && !location.pathname.includes('/cart') && (
                         <Link 
                             to={`/table/${tableId}/cart`}
                             className="flex items-center gap-1.5 bg-[#5A724A] hover:bg-[#485D3B] text-white px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-[0_4px_12px_rgba(90,114,74,0.25)]"
@@ -35,6 +40,26 @@ export default function CustomerLayout() {
                             <ShoppingBag size={14} />
                             <span>{totalItems}</span>
                             <span className="font-mono text-[#BCE2A3] border-l border-white/20 pl-1.5">₹{total.toFixed(0)}</span>
+                        </Link>
+                    )}
+
+                    {/* Quick navigation toggle between Menu and Bill/Status */}
+                    {isStatusPage ? (
+                        <Link
+                            to={`/table/${tableId}/menu`}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white border border-[#EBEBEB] text-[#5A724A] hover:border-[#5A724A] text-xs font-bold transition-all shadow-2xs"
+                        >
+                            <Utensils size={13} />
+                            <span className="text-[11px]">Menu</span>
+                        </Link>
+                    ) : (
+                        <Link
+                            to={`/table/${tableId}/status`}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white border border-[#EBEBEB] text-[#5A724A] hover:border-[#5A724A] text-xs font-bold transition-all shadow-2xs"
+                            title="View Live Bill & Order Status"
+                        >
+                            <Receipt size={13} />
+                            <span className="text-[11px]">Bill</span>
                         </Link>
                     )}
 

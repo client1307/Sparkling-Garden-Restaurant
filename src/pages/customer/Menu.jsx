@@ -5,7 +5,6 @@ import { useParams, Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { FoodCard } from '../../components/customer/FoodCard';
 import CategoryFilter from '../../components/customer/CategoryFilter';
-import AIChatPanel from '../../components/customer/AIChatPanel';
 import { MENU_ITEMS, CATEGORIES } from '../../services/mockData';
 import { api, socket } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -19,9 +18,9 @@ const Menu = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
-    const [showAIChat, setShowAIChat] = useState(false);
+    const [activeBill, setActiveBill] = useState(null);
 
-    // Fetch Menu
+    // Fetch Menu & Active Bill
     useEffect(() => {
         const fetchMenu = async () => {
             try {
@@ -36,7 +35,17 @@ const Menu = () => {
             }
         };
         fetchMenu();
-    }, []);
+
+        if (tableId) {
+            api.get(`/orders/table/${tableId}/active`)
+                .then(res => {
+                    if (res.data?.hasActiveOrder) {
+                        setActiveBill(res.data);
+                    }
+                })
+                .catch(() => {});
+        }
+    }, [tableId]);
 
     // Derived Data
     const dynamicCategories = useMemo(() => {
@@ -75,7 +84,7 @@ const Menu = () => {
     return (
         <div className="min-h-screen bg-[#F4F6F0] text-[#222222] font-body pb-32">
             {/* Restaurant Brand Banner with Official Logo */}
-            <div className="mb-6 relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#1C2B1A] via-[#2D4226] to-[#1C2B1A] text-white p-5 shadow-[0_12px_32px_rgba(47,68,40,0.18)] border border-[#5A724A]/30">
+            <div className="mb-4 relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#1C2B1A] via-[#2D4226] to-[#1C2B1A] text-white p-5 shadow-[0_12px_32px_rgba(47,68,40,0.18)] border border-[#5A724A]/30">
                 <div className="flex items-center justify-between gap-3 relative z-10">
                     <div className="flex-1">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#BCE2A3]/20 border border-[#BCE2A3]/30 text-[10px] font-bold text-[#BCE2A3] uppercase tracking-wider mb-1.5">
@@ -96,6 +105,25 @@ const Menu = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Active Session Continuity Banner */}
+            {activeBill && (
+                <Link
+                    to={`/table/${tableId}/status`}
+                    className="mb-5 block bg-gradient-to-r from-[#5A724A] to-[#3B4D31] text-white p-3.5 rounded-2xl shadow-sm border border-[#BCE2A3]/30 hover:opacity-95 transition-all group"
+                >
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#BCE2A3] animate-ping" />
+                            <div>
+                                <p className="text-xs font-bold">Active Table Session • {activeBill.orderCount} Batch(es)</p>
+                                <p className="text-[11px] text-white/80">Running Tab: ₹{activeBill.totalAmount.toFixed(2)} · Kitchen: <span className="font-semibold text-[#BCE2A3]">{activeBill.latestStatus}</span></p>
+                            </div>
+                        </div>
+                        <span className="text-xs font-bold bg-white/20 px-2.5 py-1 rounded-full text-[#BCE2A3] group-hover:bg-white/30 transition-colors">View Bill →</span>
+                    </div>
+                </Link>
+            )}
 
             {/* Search Bar - Pill-shaped */}
             <div className="mb-6">
@@ -226,21 +254,6 @@ const Menu = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            {/* AI Assistant FAB Button (Shifted above cart bar when cart is visible) */}
-            <motion.button 
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowAIChat(true)}
-                className={`fixed right-4 z-40 w-12 h-12 rounded-full bg-[#5A724A] text-white shadow-[0_6px_24px_rgba(90,114,74,0.35)] flex items-center justify-center group transition-all duration-300 ${totalItems > 0 ? 'bottom-22' : 'bottom-6'}`}
-                aria-label="Open AI Culinary Concierge"
-            >
-                <div className="absolute inset-0 rounded-full border-2 border-[#BCE2A3] animate-ping opacity-40 pointer-events-none" />
-                <span className="text-xl transform group-hover:rotate-12 transition-transform">✨</span>
-            </motion.button>
-
-            {/* AI Panel Component */}
-            <AIChatPanel isOpen={showAIChat} onClose={() => setShowAIChat(false)} />
         </div>
     );
 };

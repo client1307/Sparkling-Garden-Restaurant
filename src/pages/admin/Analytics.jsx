@@ -45,6 +45,15 @@ const Analytics = () => {
     const [exportEndDate, setExportEndDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [exportingType, setExportingType] = useState(null);
 
+    const handleSetFourMonthPreset = () => {
+        const today = new Date();
+        const fourMonthsAgo = new Date();
+        fourMonthsAgo.setMonth(today.getMonth() - 4);
+        setExportStartDate(fourMonthsAgo.toISOString().split('T')[0]);
+        setExportEndDate(today.toISOString().split('T')[0]);
+        toast.success("Date range set to last 4 months (A17)");
+    };
+
     const handleGenerateReport = async (type) => {
         setExportingType(type);
         try {
@@ -201,6 +210,14 @@ const Analytics = () => {
                             value={exportEndDate}
                             onChange={e => setExportEndDate(e.target.value)}
                         />
+                        <button 
+                            type="button"
+                            onClick={handleSetFourMonthPreset}
+                            className="bg-[#F8F8F8] hover:bg-[#EBEBEB] text-[#5A724A] border border-[#EBEBEB] px-3 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap"
+                            title="Set date range to past 4 months (A17)"
+                        >
+                            4-Mo History
+                        </button>
                     </div>
                     
                     <div className="h-5 w-px bg-[#EBEBEB] mx-1 hidden sm:block" />

@@ -1,25 +1,28 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
-import { ChefHat, User, Shield, Utensils } from 'lucide-react';
+import { ChefHat, User, Shield, Utensils, Printer, Receipt } from 'lucide-react';
 import CustomerLayout from './layouts/CustomerLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import Menu from './pages/customer/Menu';
 import Cart from './pages/customer/Cart';
 import Payment from './pages/customer/Payment';
-import KitchenDashboard from './pages/kitchen/KitchenDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
-import InventoryPage from './pages/admin/Inventory';
 import Analytics from './pages/admin/Analytics';
 import Forecast from './pages/admin/Forecast';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminTables from './pages/admin/AdminTables';
+import AdminMenu from './pages/admin/AdminMenu';
+import AdminStaff from './pages/admin/AdminStaff';
+import AdminBills from './pages/admin/AdminBills';
+import AdminSettings from './pages/admin/AdminSettings';
 import WaiterDashboard from './pages/waiter/WaiterDashboard';
 import WaiterOrders from './pages/waiter/WaiterOrders';
 import OrderStatus from './pages/customer/OrderStatus';
 import TableSelection from './pages/customer/TableSelection';
 import Login from './pages/auth/Login';
 import Home from './pages/public/Home';
+import PosDesktop from './pages/pos/PosDesktop';
 
 // Staff portal: role entry points (no credentials shown)
 const Portal = () => (
@@ -34,11 +37,19 @@ const Portal = () => (
       </div>
 
       <div className="p-3 border border-[#EBEBEB] rounded-3xl bg-white shadow-[0_8px_30px_rgba(90,114,74,0.06)] grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <a href="/pos/login" className="flex flex-col items-center p-4 bg-[#F8F8F8] rounded-2xl border border-[#EBEBEB] hover:border-[#5A724A] hover:bg-[#BCE2A3]/20 transition-all group">
+          <div className="w-11 h-11 rounded-xl bg-white border border-[#EBEBEB] flex items-center justify-center text-[#5A724A] group-hover:scale-110 transition-transform mb-2 shadow-xs">
+            <Receipt size={22} />
+          </div>
+          <span className="text-sm font-bold text-[#222222]">Cashier POS</span>
+          <span className="text-[10px] text-[#818181] mt-0.5 font-mono">billing@sparkling.com</span>
+        </a>
+
         <a href="/admin/login" className="flex flex-col items-center p-4 bg-[#F8F8F8] rounded-2xl border border-[#EBEBEB] hover:border-[#5A724A] hover:bg-[#BCE2A3]/20 transition-all group">
           <div className="w-11 h-11 rounded-xl bg-white border border-[#EBEBEB] flex items-center justify-center text-[#5A724A] group-hover:scale-110 transition-transform mb-2 shadow-xs">
             <Shield size={22} />
           </div>
-          <span className="text-sm font-bold text-[#222222]">Admin</span>
+          <span className="text-sm font-bold text-[#222222]">Admin Portal</span>
           <span className="text-[10px] text-[#818181] mt-0.5 font-mono">admin@sparkling.com</span>
         </a>
 
@@ -46,17 +57,15 @@ const Portal = () => (
           <div className="w-11 h-11 rounded-xl bg-white border border-[#EBEBEB] flex items-center justify-center text-[#5A724A] group-hover:scale-110 transition-transform mb-2 shadow-xs">
             <User size={22} />
           </div>
-          <span className="text-sm font-bold text-[#222222]">Waiter</span>
+          <span className="text-sm font-bold text-[#222222]">Waiter Terminal</span>
           <span className="text-[10px] text-[#818181] mt-0.5 font-mono">waiter@sparkling.com</span>
         </a>
+      </div>
 
-        <a href="/kitchen/login" className="flex flex-col items-center p-4 bg-[#F8F8F8] rounded-2xl border border-[#EBEBEB] hover:border-[#5A724A] hover:bg-[#BCE2A3]/20 transition-all group">
-          <div className="w-11 h-11 rounded-xl bg-white border border-[#EBEBEB] flex items-center justify-center text-[#5A724A] group-hover:scale-110 transition-transform mb-2 shadow-xs">
-            <ChefHat size={22} />
-          </div>
-          <span className="text-sm font-bold text-[#222222]">Kitchen</span>
-          <span className="text-[10px] text-[#818181] mt-0.5 font-mono">chef@sparkling.com</span>
-        </a>
+      {/* Direct thermal printer notice */}
+      <div className="p-3 bg-stone-100 rounded-2xl border border-stone-200 text-stone-600 text-xs flex items-center justify-center gap-2">
+        <Printer size={15} className="text-[#5A724A]" />
+        <span>Kitchen orders automatically print directly to the thermal printer (no kitchen screen).</span>
       </div>
 
       <div className="pt-2">
@@ -67,6 +76,23 @@ const Portal = () => (
     </div>
   </div>
 );
+
+const RequireRole = ({ roles, loginPath, children }) => {
+  const token = localStorage.getItem('token');
+  let user = null;
+
+  try {
+    user = JSON.parse(localStorage.getItem('user') || 'null');
+  } catch {
+    localStorage.removeItem('user');
+  }
+
+  if (!token || !user || !roles.includes(user.role)) {
+    return <Navigate to={loginPath} replace />;
+  }
+
+  return children;
+};
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -79,26 +105,46 @@ const AnimatedRoutes = () => {
 
         <Route path="/admin/login" element={<Login role="Admin" />} />
         <Route path="/waiter/login" element={<Login role="Waiter" />} />
-        <Route path="/kitchen/login" element={<Login role="Kitchen" />} />
+        <Route path="/pos/login" element={<Login role="Billing" />} />
+        <Route path="/cashier/login" element={<Navigate to="/pos/login" replace />} />
+        <Route path="/billing/login" element={<Navigate to="/pos/login" replace />} />
+        <Route path="/pos" element={
+          <RequireRole roles={['admin', 'billing']} loginPath="/pos/login">
+            <PosDesktop />
+          </RequireRole>
+        } />
+        <Route path="/cashier" element={<Navigate to="/pos" replace />} />
+        <Route path="/billing" element={<Navigate to="/pos" replace />} />
+        <Route path="/kitchen/login" element={<Navigate to="/portal" replace />} />
+        <Route path="/kitchen" element={<Navigate to="/portal" replace />} />
+        <Route path="/kitchen/*" element={<Navigate to="/portal" replace />} />
 
-        <Route path="/admin" element={<DashboardLayout role="admin" />}>
+        <Route path="/admin" element={
+          <RequireRole roles={['admin']} loginPath="/admin/login">
+            <DashboardLayout role="admin" />
+          </RequireRole>
+        }>
           <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="inventory" element={<InventoryPage />} />
-          <Route path="menu" element={<InventoryPage />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="forecast" element={<Forecast />} />
-          <Route path="orders" element={<AdminOrders />} />
+          <Route path="menu" element={<AdminMenu />} />
+          <Route path="orders" element={<AdminBills />} />
           <Route path="tables" element={<AdminTables />} />
+          <Route path="staff" element={<AdminStaff />} />
+          <Route path="analytics" element={<Analytics />} />
+          <Route path="inventory" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route path="forecast" element={<Forecast />} />
         </Route>
 
-        <Route path="/waiter" element={<DashboardLayout role="waiter" />}>
+        <Route path="/waiter" element={
+          <RequireRole roles={['admin', 'waiter']} loginPath="/waiter/login">
+            <DashboardLayout role="waiter" />
+          </RequireRole>
+        }>
           <Route path="dashboard" element={<WaiterDashboard />} />
           <Route path="orders" element={<WaiterOrders />} />
         </Route>
 
-        <Route path="/kitchen" element={<DashboardLayout role="kitchen" />}>
-          <Route path="dashboard" element={<KitchenDashboard />} />
-        </Route>
+
 
         <Route path="/tables" element={<Navigate to="/table" replace />} />
         <Route path="/table" element={<TableSelection />} />

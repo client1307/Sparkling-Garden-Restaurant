@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const Table = require('../models/Table');
 const { protect, adminOnly, authorize } = require('../middleware/authMiddleware');
+const { capabilityForTable } = require('../utils/tableCapability');
 
-// @desc    Get all tables
+// @desc    Get all tables (Staff access)
 // @route   GET /api/tables
-router.get('/', async (req, res) => {
+router.get('/', protect, authorize('admin', 'waiter', 'kitchen', 'billing'), async (req, res) => {
     try {
         const tables = await Table.find({ isActive: true });
         res.json(tables);
@@ -22,7 +23,13 @@ router.get('/status/:tableId', async (req, res) => {
         if (!table) {
             return res.status(404).json({ message: 'Table not found', exists: false });
         }
-        res.json({ exists: true, status: table.status, tableId: table.tableId, currentBill: table.currentBill });
+        res.json({
+            exists: true,
+            status: table.status,
+            tableId: table.tableId,
+            currentBill: table.currentBill || 0,
+            tableToken: capabilityForTable(table.tableId)
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -59,7 +66,7 @@ router.patch('/:id', protect, authorize('admin', 'waiter'), async (req, res) => 
         const updateData = {};
 
         if (status) {
-            const allowedStatuses = ['available', 'occupied', 'cleaning'];
+            const allowedStatuses = ['available', 'occupied', 'cleaning', 'billing'];
             if (!allowedStatuses.includes(status)) {
                 return res.status(400).json({ message: `Invalid status. Must be one of: ${allowedStatuses.join(', ')}` });
             }

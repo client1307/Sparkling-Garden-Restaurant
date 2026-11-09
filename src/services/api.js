@@ -30,6 +30,10 @@ const SOCKET_URL = getCleanSocketUrl(rawSocketUrl);
 
 // Robust Socket.IO config — prevents auto-disconnect on phones / unstable WiFi
 export const socket = io(SOCKET_URL, {
+    auth: {
+        token: localStorage.getItem('token') || undefined,
+        tableToken: localStorage.getItem('tableToken') || undefined
+    },
     reconnection: true,           // auto-reconnect on drop
     reconnectionAttempts: Infinity,// never stop trying
     reconnectionDelay: 1000,      // start with 1s delay
@@ -73,6 +77,12 @@ api.interceptors.request.use((config) => {
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+    const guestAccessToken = localStorage.getItem('guestAccessToken');
+    if (guestAccessToken) {
+        config.headers['x-guest-token'] = guestAccessToken;
+    }
+    const tableToken = localStorage.getItem('tableToken');
+    if (tableToken) config.headers['x-table-token'] = tableToken;
     return config;
 });
 
@@ -83,11 +93,29 @@ export const getMenu = async () => {
 
 export const placeOrder = async (orderData) => {
     const response = await api.post('/orders', orderData);
+    if (response.data.guestAccessToken) {
+        localStorage.setItem('guestAccessToken', response.data.guestAccessToken);
+    }
     return response.data;
 };
 
 export const getKitchenOrders = async () => {
     const response = await api.get('/orders');
+    return response.data;
+};
+
+export const createWaiterOrder = async (orderData) => {
+    const response = await api.post('/pos/orders', orderData);
+    return response.data;
+};
+
+export const editOrderItem = async (orderId, itemIndex, quantity) => {
+    const response = await api.patch(`/pos/orders/${orderId}/items/${itemIndex}`, { quantity });
+    return response.data;
+};
+
+export const getOccupiedPosTables = async () => {
+    const response = await api.get('/pos/tables');
     return response.data;
 };
 

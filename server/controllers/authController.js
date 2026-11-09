@@ -1,8 +1,9 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const ActivityLog = require('../models/ActivityLog');
 
 const generateToken = (id, role) => {
-    return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '8h' });
 };
 
 // @desc    Auth user & get token
@@ -25,6 +26,7 @@ const loginUser = async (req, res) => {
                 token: generateToken(user._id, user.role),
             });
         } else {
+            await ActivityLog.create({ action: 'Failed login', entityType: 'Auth' });
             res.status(401).json({ message: 'Invalid email or password' });
         }
     } catch (error) {
@@ -51,7 +53,7 @@ const registerUser = async (req, res) => {
             return res.status(400).json({ message: 'Password must be at least 6 characters' });
         }
 
-        const allowedRoles = ['admin', 'waiter', 'kitchen', 'customer'];
+        const allowedRoles = ['admin', 'waiter', 'billing', 'kitchen', 'customer'];
         const userRole = role && allowedRoles.includes(role) ? role : 'customer';
 
         const normalizedEmail = email.trim().toLowerCase();

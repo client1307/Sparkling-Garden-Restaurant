@@ -20,3 +20,7 @@ services:
         sync: false       # your Vercel URL, e.g. https://the-sparkling.vercel.app
       - key: GEMINI_API_KEY
         sync: false       # optional (AI concierge)
+      - key: STAFF_ALLOWED_IPS
+        sync: false       # restaurant public IP(s), comma separated
+      - key: PRINT_AGENT_KEY
+        generateValue: true

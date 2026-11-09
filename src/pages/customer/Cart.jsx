@@ -13,17 +13,23 @@ const Cart = () => {
     const { tableId } = useParams();
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [tipPct, setTipPct] = useState(0);
+    const tipPct = 0;
+    const [guestName, setGuestName] = useState(localStorage.getItem('guestName') || '');
+    const [guestMobile, setGuestMobile] = useState(localStorage.getItem('guestMobile') || '');
     const [payMode, setPayMode] = useState('later');
 
-    const gst = total * 0.05;
+    const gst = 0;
     const tipAmount = total * (tipPct / 100);
     const finalTotal = total + gst + tipAmount;
 
     const handlePlaceOrder = async () => {
+        if (!guestName.trim() || !/^\d{10}$/.test(guestMobile)) { toast.error('Enter your name and a 10-digit mobile number'); return; }
+        localStorage.setItem('guestName', guestName); localStorage.setItem('guestMobile', guestMobile);
         setIsSubmitting(true);
         const orderPayload = {
             tableNumber: tableId || "0",
+            customerName: guestName.trim(),
+            customerMobile: guestMobile,
             items: cartItems.map(item => ({
                 menuItem: (item._id || item.id).toString(),
                 name: item.name,
@@ -136,70 +142,12 @@ const Cart = () => {
                 ))}
             </div>
 
-            {/* Promo Code Box */}
-            <div className="flex gap-2 mb-6">
-                <input
-                    type="text"
-                    placeholder="Enter promo or voucher code"
-                    className="flex-1 bg-white border border-[#EBEBEB] rounded-full px-4 py-2.5 text-xs text-[#222222] focus:border-[#5A724A] focus:ring-2 focus:ring-[#5A724A]/10 outline-none placeholder:text-[#818181]"
-                />
-                <Button variant="outline" className="rounded-full px-5 text-xs font-bold py-2.5">Apply</Button>
-            </div>
-
-            {/* Tip Selector */}
-            <div className="mb-6 bg-white p-4 rounded-3xl border border-[#EBEBEB] shadow-xs">
-                <div className="flex justify-between items-center mb-3">
-                    <h4 className="font-bold text-xs text-[#222222] uppercase tracking-wider">Kitchen &amp; Server Tip</h4>
-                    <span className="text-[11px] text-[#818181]">Recognize exceptional craft</span>
-                </div>
-                <div className="flex gap-2">
-                    {[0, 5, 10, 15].map(pct => (
-                        <button
-                            key={pct}
-                            onClick={() => setTipPct(pct)}
-                            className={clsx(
-                                "flex-1 py-2 rounded-full text-xs font-bold transition-all border",
-                                tipPct === pct
-                                    ? "bg-[#5A724A] text-white border-[#5A724A] shadow-xs"
-                                    : "bg-[#F8F8F8] text-[#818181] border-[#EBEBEB] hover:text-[#222222]"
-                            )}
-                        >
-                            {pct === 0 ? 'None' : `${pct}%`}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Payment Method Selector */}
-            <div className="mb-6 grid grid-cols-2 gap-3">
-                <div
-                    onClick={() => setPayMode('later')}
-                    className={clsx(
-                        "p-3.5 rounded-2xl border cursor-pointer transition-all flex flex-col items-center gap-1.5",
-                        payMode === 'later'
-                            ? "bg-[#BCE2A3]/25 border-[#5A724A] text-[#222222] shadow-xs"
-                            : "bg-white border-[#EBEBEB] text-[#818181] hover:text-[#222222]"
-                    )}
-                >
-                    <div className={clsx("p-2 rounded-full", payMode === 'later' ? "bg-[#5A724A] text-white" : "bg-[#F8F8F8] text-[#818181]")}>
-                        <Clock size={16} />
-                    </div>
-                    <span className="text-xs font-bold">Pay at Table Later</span>
-                </div>
-                <div
-                    onClick={() => setPayMode('now')}
-                    className={clsx(
-                        "p-3.5 rounded-2xl border cursor-pointer transition-all flex flex-col items-center gap-1.5",
-                        payMode === 'now'
-                            ? "bg-[#BCE2A3]/25 border-[#5A724A] text-[#222222] shadow-xs"
-                            : "bg-white border-[#EBEBEB] text-[#818181] hover:text-[#222222]"
-                    )}
-                >
-                    <div className={clsx("p-2 rounded-full", payMode === 'now' ? "bg-[#5A724A] text-white" : "bg-[#F8F8F8] text-[#818181]")}>
-                        <CreditCard size={16} />
-                    </div>
-                    <span className="text-xs font-bold">Pay Online Now</span>
-                </div>
+            {/* Guest details (billing only) + cash-only payment */}
+            <div className="mb-6 bg-white p-4 rounded-3xl border border-[#EBEBEB] space-y-3">
+                <h4 className="font-bold text-sm text-[#222222]">Your details <span className="text-[11px] font-normal text-[#818181]">(used only for billing)</span></h4>
+                <input value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="Name" className="w-full px-4 py-3 rounded-2xl border border-[#EBEBEB] bg-[#F8F8F8] text-sm" />
+                <input value={guestMobile} onChange={e => setGuestMobile(e.target.value.replace(/\D/g, '').slice(0, 10))} inputMode="numeric" placeholder="10-digit mobile number" className="w-full px-4 py-3 rounded-2xl border border-[#EBEBEB] bg-[#F8F8F8] text-sm" />
+                <p className="text-xs text-[#5A724A] font-semibold">Payment: Cash only, pay at the billing desk.</p>
             </div>
 
             {/* Sticky Bottom Actions Container */}

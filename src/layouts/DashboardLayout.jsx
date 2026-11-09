@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, BarChart, LogOut, ShoppingCart, UtensilsCrossed, QrCode, BrainCircuit, User } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, BarChart, LogOut, ShoppingCart, UtensilsCrossed, QrCode, BrainCircuit, User, Users, Settings, Receipt } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { OfflineBanner } from '../components/ui/OfflineBanner';
 
@@ -16,17 +16,15 @@ export default function DashboardLayout({ role = 'admin' }) {
 
     const links = role === 'admin' ? [
         { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-        { name: 'Orders', path: '/admin/orders', icon: ShoppingCart },
-        { name: 'Menu', path: '/admin/menu', icon: UtensilsCrossed },
-        { name: 'Inventory', path: '/admin/inventory', icon: ClipboardList },
-        { name: 'Analytics', path: '/admin/analytics', icon: BarChart },
-        { name: 'AI Forecast', path: '/admin/forecast', icon: BrainCircuit },
+        { name: 'Menu & Food', path: '/admin/menu', icon: UtensilsCrossed },
+        { name: 'Orders & Bills', path: '/admin/orders', icon: ShoppingCart },
         { name: 'Tables & QR', path: '/admin/tables', icon: QrCode },
-    ] : role === 'waiter' ? [
+        { name: 'Staff & Roles', path: '/admin/staff', icon: Users },
+        { name: 'Analytics & Reports', path: '/admin/analytics', icon: BarChart },
+        { name: 'Printers & Settings', path: '/admin/settings', icon: Settings },
+    ] : [
         { name: 'Floor Plan', path: '/waiter/dashboard', icon: LayoutDashboard },
         { name: 'Active Orders', path: '/waiter/orders', icon: ShoppingCart },
-    ] : [
-        { name: 'Kitchen Display', path: '/kitchen/dashboard', icon: LayoutDashboard },
     ];
 
     return (
@@ -79,6 +77,19 @@ export default function DashboardLayout({ role = 'admin' }) {
                     })}
                 </nav>
 
+                {/* Cashier POS Quick Entry for Admin */}
+                {role === 'admin' && (
+                    <div className="mb-3">
+                        <Link
+                            to="/pos"
+                            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-[#5A724A]/10 text-[#5A724A] hover:bg-[#5A724A] hover:text-white transition-all text-xs font-bold border border-[#5A724A]/25 shadow-2xs group"
+                        >
+                            <Receipt size={16} className="text-[#5A724A] group-hover:text-white transition-colors" />
+                            <span>Cashier POS Terminal</span>
+                        </Link>
+                    </div>
+                )}
+
                 {/* Live System Status Pill */}
                 <div className="mt-auto mb-4 p-3 border border-[#EBEBEB] bg-[#F8F8F8] rounded-2xl">
                     <div className="flex justify-between items-center">
@@ -91,7 +102,11 @@ export default function DashboardLayout({ role = 'admin' }) {
                 </div>
 
                 <button
-                    onClick={() => window.location.href = '/'}
+                    onClick={() => {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        window.location.href = '/';
+                    }}
                     className="flex items-center gap-2.5 text-[#818181] hover:text-red-600 transition-colors px-3 py-2 hover:bg-red-50 rounded-xl text-xs font-semibold"
                 >
                     <LogOut size={16} />

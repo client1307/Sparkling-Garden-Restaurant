@@ -578,96 +578,111 @@ const generateCustomerBill = async (req, res) => {
         }
 
         doc.y = topY;
-        doc.fontSize(13).font('Helvetica-Bold').fillColor('#222222').text('The Sparkling Garden Restaurant', { align: 'center' });
-        doc.fontSize(8).font('Helvetica').fillColor('#555555').text('100% Pure Veg Fine Dining · Deesa, Gujarat', { align: 'center' });
-        doc.fontSize(7.5).font('Helvetica').text('Contact: +91 98250 12345 | FSSAI: 10723000000001', { align: 'center' });
+        doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000').text('SPARKLING', { align: 'center' });
+        doc.fontSize(10).font('Helvetica-Bold').text('GARDEN RESTAURANT', { align: 'center' });
+        doc.fontSize(7.5).font('Helvetica').fillColor('#333333').text('At. & Po.Rasana Mota, Palanpur Highway,Deesa- 385535', { align: 'center' });
+        doc.fontSize(7).font('Helvetica').text('EMail:thesparkling2018@gmail.com , Mobile : +91 94093 22022', { align: 'center' });
         doc.moveDown(0.2);
-        doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#5A724A').text('TAX INVOICE / GUEST RECEIPT', { align: 'center' });
-        doc.moveDown(0.2);
-        doc.fillColor('#888888').text('------------------------------------------------------------', { align: 'center' });
-        
-        // Metadata in Indian Standard Time (IST)
-        doc.moveDown(0.2);
-        doc.fontSize(8).font('Helvetica-Bold').fillColor('#222222');
-        doc.text(`Table: Table ${order.tableNumber}`, 20, doc.y, { continued: true });
-        doc.font('Helvetica').text(`Order ID: #${order._id.toString().slice(-6).toUpperCase()}`, { align: 'right' });
-        doc.moveDown(0.2);
-        doc.text(`Date: ${formatISTDateTime(order.createdAt)} (IST)`);
-        doc.text(`Type: Dine-In  |  Status: ${order.status || 'Served'}`);
-        doc.moveDown(0.2);
-        doc.fillColor('#888888').text('------------------------------------------------------------', { align: 'center' });
+        doc.moveTo(20, doc.y).lineTo(260, doc.y).strokeColor('#000000').lineWidth(0.75).stroke();
+        doc.moveDown(0.3);
+
+        // Bill No, TAX INVOICE box, Date
+        const billNo = order.invoiceNumber || (parseInt(order._id.toString().slice(-4), 16) % 9000 + 1000) || 3663;
+        const metaY = doc.y;
+        doc.fontSize(8).font('Helvetica-Bold').fillColor('#000000');
+        doc.text(`Bill No:  ${billNo}`, 20, metaY);
+        doc.text('TAX INVOICE', 110, metaY, { width: 60, align: 'center' });
+        doc.rect(108, metaY - 1, 64, 11).strokeColor('#000000').lineWidth(0.5).stroke();
+        const dStr = new Date(order.createdAt).toLocaleDateString('en-GB');
+        doc.text(`Date:  ${dStr}`, 180, metaY, { width: 80, align: 'right' });
+
+        doc.y = metaY + 14;
+        doc.font('Helvetica').fontSize(8);
+        doc.text(`Name:   ${order.customerName || ''}`, 20, doc.y);
+        const nameY = doc.y;
+        doc.text(`GST IN: ${order.customerGstin || ''}`, 20, nameY);
+        doc.font('Helvetica-Bold').text(`Table No:  ${order.tableNumber}`, 180, nameY, { width: 80, align: 'right' });
+        doc.moveDown(0.3);
+        doc.moveTo(20, doc.y).lineTo(260, doc.y).strokeColor('#000000').lineWidth(0.75).stroke();
         doc.moveDown(0.3);
 
         // Table Header
         const itemY = doc.y;
-        doc.font('Helvetica-Bold').fontSize(8).fillColor('#444444');
-        doc.text('Item Description', 20, itemY);
-        doc.text('Qty', 150, itemY, { width: 25, align: 'center' });
-        doc.text('Price', 180, itemY, { width: 35, align: 'right' });
-        doc.text('Total', 220, itemY, { width: 40, align: 'right' });
-        doc.moveDown(0.3);
-        doc.moveTo(20, doc.y).lineTo(260, doc.y).strokeColor('#CCCCCC').stroke();
+        doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#000000');
+        doc.text('Sr. No', 20, itemY, { width: 25 });
+        doc.text('D E S C R I P T I O N', 48, itemY, { width: 120 });
+        doc.text('QTY', 170, itemY, { width: 22, align: 'right' });
+        doc.text('PRICE', 194, itemY, { width: 32, align: 'right' });
+        doc.text('AMOUNT', 228, itemY, { width: 32, align: 'right' });
+        doc.moveDown(0.2);
+        doc.moveTo(20, doc.y).lineTo(260, doc.y).strokeColor('#000000').lineWidth(0.5).stroke();
         doc.moveDown(0.3);
 
         // Items List
-        doc.font('Helvetica').fontSize(8).fillColor('#222222');
-        order.items.forEach(item => {
+        let subtotal = 0;
+        doc.font('Helvetica').fontSize(7.5).fillColor('#000000');
+        order.items.filter(i => i.status !== 'cancelled').forEach((item, index) => {
             const rowY = doc.y;
             const itemQty = Number(item.quantity) || 1;
             const itemPrice = Number(item.price) || 0;
             const itemTotal = itemQty * itemPrice;
+            subtotal += itemTotal;
 
-            doc.text((item.name || 'Artisan Dish').substring(0, 20), 20, rowY, { width: 125 });
-            doc.text(`${itemQty}`, 150, rowY, { width: 25, align: 'center' });
-            doc.text(`INR ${itemPrice.toFixed(0)}`, 180, rowY, { width: 35, align: 'right' });
-            doc.text(`INR ${itemTotal.toFixed(2)}`, 220, rowY, { width: 40, align: 'right' });
-            doc.moveDown(0.4);
+            doc.text(`${index + 1}`, 20, rowY, { width: 25 });
+            doc.text(String(item.name || '').toUpperCase().substring(0, 24), 48, rowY, { width: 120 });
+            doc.text(`${itemQty}`, 170, rowY, { width: 22, align: 'right' });
+            doc.text(`${itemPrice.toFixed(2)}`, 194, rowY, { width: 32, align: 'right' });
+            doc.text(`${itemTotal.toFixed(2)}`, 228, rowY, { width: 32, align: 'right' });
+            doc.moveDown(0.35);
         });
 
         doc.moveDown(0.2);
-        doc.fillColor('#888888').text('------------------------------------------------------------', { align: 'center' });
+        doc.moveTo(20, doc.y).lineTo(260, doc.y).strokeColor('#000000').lineWidth(0.75).stroke();
         doc.moveDown(0.3);
 
-        // Totals Calculation
-        const totalAmount = Number(order.totalAmount) || 0;
-        const taxRate = 0.05; // 5% GST
-        const subtotal = totalAmount / (1 + taxRate);
-        const gst = totalAmount - subtotal;
-        const cgst = gst / 2;
-        const sgst = gst / 2;
+        // Tax Calculation & Round Off
+        const discount = order.discountAmount || 0;
+        const taxable = Math.max(0, subtotal - discount);
+        const cgst = +(taxable * 0.025).toFixed(2);
+        const sgst = +(taxable * 0.025).toFixed(2);
+        const rawTotal = taxable + cgst + sgst;
+        const grandTotal = Math.round(rawTotal);
+        const roundOff = +(grandTotal - rawTotal).toFixed(2);
 
-        doc.font('Helvetica').fontSize(8).fillColor('#333333');
-        doc.text('Subtotal:', 20, doc.y, { continued: true });
-        doc.text(`INR ${subtotal.toFixed(2)}`, { align: 'right' });
-        doc.moveDown(0.15);
+        const leftY = doc.y;
+        doc.font('Helvetica').fontSize(7.5).fillColor('#000000');
+        doc.text('GST. IN : 24BRUPP4641N1Z0', 20, leftY);
+        doc.text('HSN/SAC Code : 996334', 20, leftY + 11);
 
-        doc.text('CGST (2.5%):', 20, doc.y, { continued: true });
-        doc.text(`INR ${cgst.toFixed(2)}`, { align: 'right' });
-        doc.moveDown(0.15);
+        // Right totals block
+        doc.text('Total:', 160, leftY, { width: 55, align: 'right' });
+        doc.text(`${subtotal.toFixed(2)}`, 218, leftY, { width: 42, align: 'right' });
 
-        doc.text('SGST (2.5%):', 20, doc.y, { continued: true });
-        doc.text(`INR ${sgst.toFixed(2)}`, { align: 'right' });
-        doc.moveDown(0.15);
+        doc.text('Disc:', 160, leftY + 11, { width: 55, align: 'right' });
+        doc.text(discount > 0 ? `${discount.toFixed(2)}` : '', 218, leftY + 11, { width: 42, align: 'right' });
 
-        if (order.tip && Number(order.tip) > 0) {
-            doc.text('Service Tip:', 20, doc.y, { continued: true });
-            doc.text(`INR ${Number(order.tip).toFixed(2)}`, { align: 'right' });
-            doc.moveDown(0.15);
-        }
+        doc.text('C GST @ 2.5% :', 140, leftY + 22, { width: 75, align: 'right' });
+        doc.text(`${cgst.toFixed(2)}`, 218, leftY + 22, { width: 42, align: 'right' });
 
-        doc.moveDown(0.2);
-        doc.moveTo(20, doc.y).lineTo(260, doc.y).strokeColor('#222222').lineWidth(1).stroke();
+        doc.text('S GST @ 2.5% :', 140, leftY + 33, { width: 75, align: 'right' });
+        doc.text(`${sgst.toFixed(2)}`, 218, leftY + 33, { width: 42, align: 'right' });
+
+        doc.text('Round Off:-', 150, leftY + 44, { width: 65, align: 'right' });
+        doc.text(`${roundOff.toFixed(2)}`, 218, leftY + 44, { width: 42, align: 'right' });
+
+        doc.moveTo(150, leftY + 56).lineTo(260, leftY + 56).strokeColor('#000000').lineWidth(0.5).stroke();
+
+        doc.font('Helvetica-Bold').fontSize(9);
+        doc.text('Grand Total:', 140, leftY + 60, { width: 75, align: 'right' });
+        doc.text(`${grandTotal.toFixed(2)}`, 218, leftY + 60, { width: 42, align: 'right' });
+
+        doc.moveTo(150, leftY + 73).lineTo(260, leftY + 73).strokeColor('#000000').lineWidth(0.5).stroke();
+        doc.moveTo(150, leftY + 75).lineTo(260, leftY + 75).strokeColor('#000000').lineWidth(0.5).stroke();
+
+        doc.y = leftY + 84;
+        doc.moveTo(20, doc.y).lineTo(260, doc.y).strokeColor('#000000').lineWidth(0.75).stroke();
         doc.moveDown(0.3);
-
-        doc.font('Helvetica-Bold').fontSize(12).fillColor('#222222');
-        doc.text('GRAND TOTAL:', 20, doc.y, { continued: true });
-        doc.text(`INR ${totalAmount.toFixed(2)}`, { align: 'right' });
-
-        doc.moveDown(0.6);
-        doc.font('Helvetica').fontSize(7.5).fillColor('#555555');
-        doc.text('Thank you for dining with us!', { align: 'center' });
-        doc.text('We hope to welcome you back soon ✨', { align: 'center' });
-        doc.moveDown(0.2);
+        doc.font('Helvetica').fontSize(7.5).text('Subject to Deesa jurisdiction only', { align: 'center' });
         doc.fontSize(6.5).fillColor('#888888').text('GST Included in Final Price · Powered by The Sparkling', { align: 'center' });
 
         doc.end();
@@ -678,14 +693,15 @@ const generateCustomerBill = async (req, res) => {
     }
 };
 
-// @desc    Generate Aggregated Table Customer Bill (PDF) with Restaurant Logo
+// @desc    Generate Aggregated Table Customer Bill (PDF) matching physical Tax Invoice slip
 // @route   GET /api/reports/bill/table/:tableId
 const generateTableBill = async (req, res) => {
     try {
         const tableId = req.params.tableId;
         const orders = await Order.find({
             tableNumber: tableId,
-            status: { $nin: ['Paid', 'Cancelled'] }
+            status: { $nin: ['Paid', 'Cancelled'] },
+            ...(req.guestAccessToken ? { guestAccessToken: req.guestAccessToken } : {})
         });
 
         if (orders.length === 0) {
@@ -694,8 +710,13 @@ const generateTableBill = async (req, res) => {
 
         // Aggregate items
         const itemMap = {};
+        let customerName = '';
+        let customerGstin = '';
         orders.forEach(order => {
+            if (!customerName && order.customerName) customerName = order.customerName;
+            if (!customerGstin && order.customerGstin) customerGstin = order.customerGstin;
             order.items.forEach(item => {
+                if (item.status === 'cancelled') return;
                 const key = item.name;
                 if (!itemMap[key]) {
                     itemMap[key] = {
@@ -713,7 +734,7 @@ const generateTableBill = async (req, res) => {
         const doc = new PDFDocument({ margin: 20, size: [280, pageHeight] });
         
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=table-${tableId}-consolidated-bill.pdf`);
+        res.setHeader('Content-Disposition', `attachment; filename=table-${tableId}-tax-invoice.pdf`);
         doc.pipe(res);
 
         // Logo
@@ -729,86 +750,112 @@ const generateTableBill = async (req, res) => {
         }
 
         doc.y = topY;
-        doc.fontSize(13).font('Helvetica-Bold').fillColor('#222222').text('The Sparkling Garden Restaurant', { align: 'center' });
-        doc.fontSize(8).font('Helvetica').fillColor('#555555').text('100% Pure Veg Fine Dining · Deesa, Gujarat', { align: 'center' });
-        doc.fontSize(7.5).font('Helvetica').text('Contact: +91 98250 12345 | FSSAI: 10723000000001', { align: 'center' });
+        doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000').text('SPARKLING', { align: 'center' });
+        doc.fontSize(10).font('Helvetica-Bold').text('GARDEN RESTAURANT', { align: 'center' });
+        doc.fontSize(7.5).font('Helvetica').fillColor('#333333').text('At. & Po.Rasana Mota, Palanpur Highway,Deesa- 385535', { align: 'center' });
+        doc.fontSize(7).font('Helvetica').text('EMail:thesparkling2018@gmail.com , Mobile : +91 94093 22022', { align: 'center' });
         doc.moveDown(0.2);
-        doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#5A724A').text('CONSOLIDATED TABLE INVOICE', { align: 'center' });
-        doc.moveDown(0.2);
-        doc.fillColor('#888888').text('------------------------------------------------------------', { align: 'center' });
+        doc.moveTo(20, doc.y).lineTo(260, doc.y).strokeColor('#000000').lineWidth(0.75).stroke();
+        doc.moveDown(0.3);
 
-        // Metadata in Indian Standard Time (IST)
-        doc.moveDown(0.2);
-        doc.fontSize(8).font('Helvetica-Bold').fillColor('#222222');
-        doc.text(`Table: Table ${tableId}`, 20, doc.y, { continued: true });
-        doc.font('Helvetica').text(`Orders: ${orders.length} Batch(es)`, { align: 'right' });
-        doc.moveDown(0.2);
-        doc.text(`Date & Time: ${formatISTDateTime(new Date())} (IST)`);
-        doc.moveDown(0.2);
-        doc.fillColor('#888888').text('------------------------------------------------------------', { align: 'center' });
+        // Bill No, TAX INVOICE box, Date
+        const firstOrder = orders[0];
+        const billNo = firstOrder.invoiceNumber || (parseInt(firstOrder._id.toString().slice(-4), 16) % 9000 + 1000) || 3663;
+        const metaY = doc.y;
+        doc.fontSize(8).font('Helvetica-Bold').fillColor('#000000');
+        doc.text(`Bill No:  ${billNo}`, 20, metaY);
+        doc.text('TAX INVOICE', 110, metaY, { width: 60, align: 'center' });
+        doc.rect(108, metaY - 1, 64, 11).strokeColor('#000000').lineWidth(0.5).stroke();
+        const dStr = new Date().toLocaleDateString('en-GB');
+        doc.text(`Date:  ${dStr}`, 180, metaY, { width: 80, align: 'right' });
+
+        doc.y = metaY + 14;
+        doc.font('Helvetica').fontSize(8);
+        doc.text(`Name:   ${customerName || ''}`, 20, doc.y);
+        const nameY = doc.y;
+        doc.text(`GST IN: ${customerGstin || ''}`, 20, nameY);
+        doc.font('Helvetica-Bold').text(`Table No:  ${tableId}`, 180, nameY, { width: 80, align: 'right' });
+        doc.moveDown(0.3);
+        doc.moveTo(20, doc.y).lineTo(260, doc.y).strokeColor('#000000').lineWidth(0.75).stroke();
         doc.moveDown(0.3);
 
         // Table Header
         const itemY = doc.y;
-        doc.font('Helvetica-Bold').fontSize(8).fillColor('#444444');
-        doc.text('Item Description', 20, itemY);
-        doc.text('Qty', 150, itemY, { width: 25, align: 'center' });
-        doc.text('Price', 180, itemY, { width: 35, align: 'right' });
-        doc.text('Total', 220, itemY, { width: 40, align: 'right' });
-        doc.moveDown(0.3);
-        doc.moveTo(20, doc.y).lineTo(260, doc.y).strokeColor('#CCCCCC').stroke();
+        doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#000000');
+        doc.text('Sr. No', 20, itemY, { width: 25 });
+        doc.text('D E S C R I P T I O N', 48, itemY, { width: 120 });
+        doc.text('QTY', 170, itemY, { width: 22, align: 'right' });
+        doc.text('PRICE', 194, itemY, { width: 32, align: 'right' });
+        doc.text('AMOUNT', 228, itemY, { width: 32, align: 'right' });
+        doc.moveDown(0.2);
+        doc.moveTo(20, doc.y).lineTo(260, doc.y).strokeColor('#000000').lineWidth(0.5).stroke();
         doc.moveDown(0.3);
 
         // Aggregated Items List
-        let rawSubtotal = 0;
-        doc.font('Helvetica').fontSize(8).fillColor('#222222');
-        aggregatedItems.forEach(item => {
+        let subtotal = 0;
+        doc.font('Helvetica').fontSize(7.5).fillColor('#000000');
+        aggregatedItems.forEach((item, index) => {
             const rowY = doc.y;
-            const lineTotal = item.quantity * item.price;
-            rawSubtotal += lineTotal;
+            const itemQty = Number(item.quantity) || 1;
+            const itemPrice = Number(item.price) || 0;
+            const itemTotal = itemQty * itemPrice;
+            subtotal += itemTotal;
 
-            doc.text(item.name.substring(0, 20), 20, rowY, { width: 125 });
-            doc.text(`${item.quantity}`, 150, rowY, { width: 25, align: 'center' });
-            doc.text(`INR ${item.price.toFixed(0)}`, 180, rowY, { width: 35, align: 'right' });
-            doc.text(`INR ${lineTotal.toFixed(2)}`, 220, rowY, { width: 40, align: 'right' });
-            doc.moveDown(0.4);
+            doc.text(`${index + 1}`, 20, rowY, { width: 25 });
+            doc.text(String(item.name || '').toUpperCase().substring(0, 24), 48, rowY, { width: 120 });
+            doc.text(`${itemQty}`, 170, rowY, { width: 22, align: 'right' });
+            doc.text(`${itemPrice.toFixed(2)}`, 194, rowY, { width: 32, align: 'right' });
+            doc.text(`${itemTotal.toFixed(2)}`, 228, rowY, { width: 32, align: 'right' });
+            doc.moveDown(0.35);
         });
 
         doc.moveDown(0.2);
-        doc.fillColor('#888888').text('------------------------------------------------------------', { align: 'center' });
+        doc.moveTo(20, doc.y).lineTo(260, doc.y).strokeColor('#000000').lineWidth(0.75).stroke();
         doc.moveDown(0.3);
 
-        // Totals (5% GST)
-        const gstRate = 0.05;
-        const gst = rawSubtotal * gstRate;
-        const grandTotal = rawSubtotal + gst;
-        const cgst = gst / 2;
-        const sgst = gst / 2;
+        // Tax Calculation & Round Off (Gujarat SGST 2.5% + CGST 2.5%)
+        const discount = orders.reduce((sum, o) => sum + (o.discountAmount || 0), 0);
+        const taxable = Math.max(0, subtotal - discount);
+        const cgst = +(taxable * 0.025).toFixed(2);
+        const sgst = +(taxable * 0.025).toFixed(2);
+        const rawTotal = taxable + cgst + sgst;
+        const grandTotal = Math.round(rawTotal);
+        const roundOff = +(grandTotal - rawTotal).toFixed(2);
 
-        doc.font('Helvetica').fontSize(8).fillColor('#333333');
-        doc.text('Subtotal:', 20, doc.y, { continued: true });
-        doc.text(`INR ${rawSubtotal.toFixed(2)}`, { align: 'right' });
-        doc.moveDown(0.15);
+        const leftY = doc.y;
+        doc.font('Helvetica').fontSize(7.5).fillColor('#000000');
+        doc.text('GST. IN : 24BRUPP4641N1Z0', 20, leftY);
+        doc.text('HSN/SAC Code : 996334', 20, leftY + 11);
 
-        doc.text('CGST (2.5%):', 20, doc.y, { continued: true });
-        doc.text(`INR ${cgst.toFixed(2)}`, { align: 'right' });
-        doc.moveDown(0.15);
+        doc.text('Total:', 160, leftY, { width: 55, align: 'right' });
+        doc.text(`${subtotal.toFixed(2)}`, 218, leftY, { width: 42, align: 'right' });
 
-        doc.text('SGST (2.5%):', 20, doc.y, { continued: true });
-        doc.text(`INR ${sgst.toFixed(2)}`, { align: 'right' });
-        doc.moveDown(0.2);
+        doc.text('Disc:', 160, leftY + 11, { width: 55, align: 'right' });
+        doc.text(discount > 0 ? `${discount.toFixed(2)}` : '', 218, leftY + 11, { width: 42, align: 'right' });
 
-        doc.moveTo(20, doc.y).lineTo(260, doc.y).strokeColor('#222222').lineWidth(1).stroke();
+        doc.text('C GST @ 2.5% :', 140, leftY + 22, { width: 75, align: 'right' });
+        doc.text(`${cgst.toFixed(2)}`, 218, leftY + 22, { width: 42, align: 'right' });
+
+        doc.text('S GST @ 2.5% :', 140, leftY + 33, { width: 75, align: 'right' });
+        doc.text(`${sgst.toFixed(2)}`, 218, leftY + 33, { width: 42, align: 'right' });
+
+        doc.text('Round Off:-', 150, leftY + 44, { width: 65, align: 'right' });
+        doc.text(`${roundOff.toFixed(2)}`, 218, leftY + 44, { width: 42, align: 'right' });
+
+        doc.moveTo(150, leftY + 56).lineTo(260, leftY + 56).strokeColor('#000000').lineWidth(0.5).stroke();
+
+        doc.font('Helvetica-Bold').fontSize(9);
+        doc.text('Grand Total:', 140, leftY + 60, { width: 75, align: 'right' });
+        doc.text(`${grandTotal.toFixed(2)}`, 218, leftY + 60, { width: 42, align: 'right' });
+
+        doc.moveTo(150, leftY + 73).lineTo(260, leftY + 73).strokeColor('#000000').lineWidth(0.5).stroke();
+        doc.moveTo(150, leftY + 75).lineTo(260, leftY + 75).strokeColor('#000000').lineWidth(0.5).stroke();
+
+        doc.y = leftY + 84;
+        doc.moveTo(20, doc.y).lineTo(260, doc.y).strokeColor('#000000').lineWidth(0.75).stroke();
         doc.moveDown(0.3);
-
-        doc.font('Helvetica-Bold').fontSize(12).fillColor('#222222');
-        doc.text('GRAND TOTAL:', 20, doc.y, { continued: true });
-        doc.text(`INR ${grandTotal.toFixed(2)}`, { align: 'right' });
-
-        doc.moveDown(0.6);
-        doc.font('Helvetica').fontSize(7.5).fillColor('#555555');
-        doc.text('Thank you for dining with us!', { align: 'center' });
-        doc.text('The Sparkling Garden Restaurant · Deesa ✨', { align: 'center' });
+        doc.font('Helvetica').fontSize(7.5).text('Subject to Deesa jurisdiction only', { align: 'center' });
+        doc.fontSize(6.5).fillColor('#888888').text('GST Included in Final Price · Powered by The Sparkling', { align: 'center' });
 
         doc.end();
 

@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
-import { TrendingUp, Users, DollarSign, Activity, AlertTriangle, ArrowUpRight, Flame, CalendarDays, CalendarRange, Calendar, Package } from 'lucide-react';
+import { 
+    TrendingUp, Users, DollarSign, Activity, AlertTriangle, 
+    ArrowUpRight, Flame, CalendarDays, CalendarRange, Calendar, 
+    Package, UtensilsCrossed, QrCode, Receipt, Settings, 
+    Printer, ShieldCheck, RefreshCw, ShoppingCart 
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import clsx from 'clsx';
-import { api } from '../../services/api';
+import { api, socket } from '../../services/api';
 
 const PERIOD_TABS = [
     { key: 'daily', label: 'Today', icon: CalendarDays },
@@ -24,73 +30,133 @@ const CustomTooltip = ({ active, payload, label }) => {
     return null;
 };
 
-const AdminDashboard = () => {
-    const [stats, setStats] = useState({ revenue: 0, ordersToday: 0, activeOrders: 0, systemStatus: 'Healthy' });
+export default function AdminDashboard() {
+    const [overview, setOverview] = useState({
+        todayRevenue: 0,
+        monthRevenue: 0,
+        todayOrderCount: 0,
+        todayPaidCount: 0,
+        activeOrderCount: 0,
+        occupiedTablesCount: 0,
+        billingRequestedCount: 0,
+        totalTables: 32,
+        lowStockCount: 0,
+        activeStaffCount: 4,
+        pendingPrintJobs: 0,
+        recentLogs: []
+    });
+
     const [salesData, setSalesData] = useState({ daily: null, weekly: null, monthly: null });
     const [activePeriod, setActivePeriod] = useState('daily');
-    const [lowStockItems, setLowStockItems] = useState([]);
+    const [tables, setTables] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const fetchAllData = async () => {
+        try {
+            const [overviewRes, salesRes, tablesRes] = await Promise.all([
+                api.get('/admin/overview').catch(() => ({ data: {} })),
+                api.get('/analytics/sales-overview').catch(() => ({ data: {} })),
+                api.get('/tables').catch(() => ({ data: [] }))
+            ]);
+
+            setOverview(prev => ({ ...prev, ...(overviewRes.data || {}) }));
+            setSalesData(salesRes.data || {});
+            setTables(tablesRes.data || []);
+            setIsLoading(false);
+        } catch (err) {
+            console.error('Failed to load admin dashboard overview:', err);
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const { data } = await api.get('/analytics/dashboard');
-                setStats({
-                    revenue: data.revenue,
-                    ordersToday: data.ordersToday,
-                    activeOrders: `${data.activeOrders}/12`,
-                    systemStatus: 'Healthy'
-                });
-            } catch (err) {
-                console.error(err);
-                setStats({
-                    revenue: 45280,
-                    ordersToday: 64,
-                    activeOrders: '8/12',
-                    systemStatus: 'Optimal'
-                });
-            }
-        };
+        fetchAllData();
 
-        const fetchSalesOverview = async () => {
-            try {
-                const { data } = await api.get('/analytics/sales-overview');
-                setSalesData(data);
-            } catch (err) {
-                console.error('Sales overview fetch failed:', err);
-            }
-        };
+        const handleUpdate = () => fetchAllData();
+        socket.on('new_order', handleUpdate);
+        socket.on('order_status_update', handleUpdate);
+        socket.on('table_update', handleUpdate);
 
-        const fetchLowStock = async () => {
-            try {
-                const { data } = await api.get('/inventory/low-stock');
-                setLowStockItems(data);
-            } catch (err) {
-                console.error('Low stock fetch failed:', err);
-            }
+        return () => {
+            socket.off('new_order', handleUpdate);
+            socket.off('order_status_update', handleUpdate);
+            socket.off('table_update', handleUpdate);
         };
-
-        fetchStats();
-        fetchSalesOverview();
-        fetchLowStock();
     }, []);
 
     const statCards = [
-        { title: "Total Revenue", value: `₹${stats.revenue.toLocaleString()}`, icon: DollarSign, color: "text-[#5A724A]", bg: "bg-[#BCE2A3]/30", border: "border-[#EBEBEB]" },
-        { title: "Active Tables", value: stats.activeOrders, icon: Users, color: "text-[#425934]", bg: "bg-[#BCE2A3]/30", border: "border-[#EBEBEB]" },
-        { title: "Orders Today", value: stats.ordersToday, icon: TrendingUp, color: "text-[#5A724A]", bg: "bg-[#BCE2A3]/30", border: "border-[#EBEBEB]" },
-        { title: "System Status", value: stats.systemStatus, icon: Activity, color: "text-[#5A724A]", bg: "bg-[#BCE2A3]/30", border: "border-[#EBEBEB]" },
+        { 
+            title: "Today's Revenue", 
+            value: `₹${(overview.todayRevenue || 0).toLocaleString()}`, 
+            subtext: `Month: ₹${(overview.monthRevenue || 0).toLocaleString()}`,
+            icon: DollarSign, 
+            color: "text-[#5A724A]", 
+            bg: "bg-[#BCE2A3]/30" 
+        },
+        { 
+            title: "Active Tables", 
+            value: `${overview.occupiedTablesCount || 0} / ${overview.totalTables || 32}`, 
+            subtext: `${overview.billingRequestedCount || 0} awaiting bill`,
+            icon: Users, 
+            color: "text-[#425934]", 
+            bg: "bg-[#BCE2A3]/30" 
+        },
+        { 
+            title: "Orders Today", 
+            value: `${overview.todayOrderCount || 0}`, 
+            subtext: `${overview.activeOrderCount || 0} active tickets`,
+            icon: TrendingUp, 
+            color: "text-[#5A724A]", 
+            bg: "bg-[#BCE2A3]/30" 
+        },
+        { 
+            title: "Thermal Hardware", 
+            value: overview.pendingPrintJobs > 0 ? `${overview.pendingPrintJobs} Queued` : "Online Ready", 
+            subtext: "Kitchen & POS Connected",
+            icon: Printer, 
+            color: overview.pendingPrintJobs > 0 ? "text-amber-700" : "text-[#5A724A]", 
+            bg: overview.pendingPrintJobs > 0 ? "bg-amber-100" : "bg-[#BCE2A3]/30" 
+        },
+    ];
+
+    const quickLinks = [
+        { label: "Menu & Food CRUD", path: "/admin/menu", icon: UtensilsCrossed, desc: "Add dishes, update prices & availability" },
+        { label: "Floor Tables & QR", path: "/admin/tables", icon: QrCode, desc: "32 tables status & QR code generation" },
+        { label: "Orders & Live Bills", path: "/admin/orders", icon: ShoppingCart, desc: "Track tickets, bills & discount concessions" },
+        { label: "Staff & Permissions", path: "/admin/staff", icon: Users, desc: "Employee logins, roles & access permissions" },
+        { label: "Sales & 4-Mo Reports", path: "/admin/analytics", icon: TrendingUp, desc: "Revenue analytics, daily & monthly reports" },
+        { label: "Printers & Settings", path: "/admin/settings", icon: Settings, desc: "Thermal printer setup, GST & DB backup" },
     ];
 
     const currentSales = salesData[activePeriod];
 
     return (
-        <div className="p-2 md:p-4 max-w-[1600px] mx-auto text-[#222222]">
-            <div className="mb-8">
-                <h1 className="text-3xl font-extrabold text-[#222222] tracking-tight">Executive Dashboard</h1>
-                <p className="text-[#818181] text-xs mt-1">Live operational and culinary revenue insights</p>
+        <div className="p-2 md:p-4 max-w-[1600px] mx-auto text-[#222222] space-y-8">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-extrabold text-[#222222] tracking-tight">Executive Dashboard (A02)</h1>
+                    <p className="text-[#818181] text-xs mt-1">
+                        Restaurant-wide operations, 32-table floor status, financial revenue &amp; hardware monitoring
+                    </p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={fetchAllData}
+                        className="p-2 rounded-full border border-[#EBEBEB] bg-white hover:text-[#5A724A] shadow-xs"
+                        title="Refresh live data"
+                    >
+                        <RefreshCw size={14} className={isLoading ? "animate-spin text-[#5A724A]" : ""} />
+                    </button>
+                    <div className="flex items-center gap-1.5 bg-[#FAF8F5] border border-[#E5E0D8] px-3 py-1.5 rounded-full text-xs font-bold text-[#5A724A]">
+                        <div className="w-2 h-2 rounded-full bg-[#5A724A] animate-pulse" />
+                        <span>Live Sync Active</span>
+                    </div>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {/* Stat Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {statCards.map((stat, i) => (
                     <motion.div
                         key={i}
@@ -98,224 +164,236 @@ const AdminDashboard = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.08 }}
                     >
-                        <Card className="p-5 flex items-center gap-4 bg-white border border-[#EBEBEB] rounded-3xl shadow-[0_4px_20px_rgba(90,114,74,0.05)] hover:shadow-[0_8px_30px_rgba(90,114,74,0.1)] transition-all">
+                        <Card className="p-5 flex items-center gap-4 bg-white border border-[#EBEBEB] rounded-3xl shadow-xs hover:border-[#5A724A] transition-all">
                             <div className={clsx("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0", stat.bg, stat.color)}>
                                 <stat.icon size={26} />
                             </div>
                             <div>
                                 <p className="text-[#818181] text-[11px] font-bold uppercase tracking-wider">{stat.title}</p>
                                 <h3 className="text-2xl font-mono font-extrabold text-[#222222] mt-0.5 tracking-tight">{stat.value}</h3>
+                                <p className="text-[10px] text-[#818181] mt-0.5">{stat.subtext}</p>
                             </div>
                         </Card>
                     </motion.div>
                 ))}
             </div>
 
-            {/* Sales Overview Section */}
-            <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-            >
-                <Card className="p-6 bg-white border border-[#EBEBEB] rounded-3xl shadow-[0_4px_20px_rgba(90,114,74,0.05)] mb-8">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                        <div>
-                            <h2 className="text-lg font-bold text-[#222222]">Sales Overview</h2>
-                            <p className="text-[#818181] text-xs mt-0.5">Revenue breakdown by selected timeframe</p>
-                        </div>
-                        <div className="flex gap-1 bg-[#F8F8F8] p-1 rounded-full border border-[#EBEBEB] self-start sm:self-auto">
-                            {PERIOD_TABS.map(tab => (
-                                <button
-                                    key={tab.key}
-                                    onClick={() => setActivePeriod(tab.key)}
-                                    className={clsx(
-                                        "flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition-all",
-                                        activePeriod === tab.key
-                                            ? "bg-[#5A724A] text-white shadow-xs"
-                                            : "text-[#818181] hover:text-[#222222]"
-                                    )}
-                                >
-                                    <tab.icon size={13} />
-                                    {tab.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Sales Stats Mini Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                        <div className="bg-[#F8F8F8] p-4 rounded-2xl border border-[#EBEBEB]">
-                            <p className="text-[11px] text-[#818181] uppercase tracking-wider font-bold mb-1">
-                                {activePeriod === 'daily' ? "Today's" : activePeriod === 'weekly' ? "This Week's" : "This Month's"} Revenue
-                            </p>
-                            <AnimatePresence mode="wait">
-                                <motion.h3
-                                    key={`rev-${activePeriod}`}
-                                    initial={{ opacity: 0, y: 8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -8 }}
-                                    className="text-2xl font-mono font-extrabold text-[#5A724A]"
-                                >
-                                    ₹{(currentSales?.total || 0).toLocaleString()}
-                                </motion.h3>
-                            </AnimatePresence>
-                        </div>
-                        <div className="bg-[#F8F8F8] p-4 rounded-2xl border border-[#EBEBEB]">
-                            <p className="text-[11px] text-[#818181] uppercase tracking-wider font-bold mb-1">
-                                {activePeriod === 'daily' ? "Today's" : activePeriod === 'weekly' ? "This Week's" : "This Month's"} Orders
-                            </p>
-                            <AnimatePresence mode="wait">
-                                <motion.h3
-                                    key={`ord-${activePeriod}`}
-                                    initial={{ opacity: 0, y: 8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -8 }}
-                                    className="text-2xl font-mono font-extrabold text-[#222222]"
-                                >
-                                    {currentSales?.orders || 0}
-                                </motion.h3>
-                            </AnimatePresence>
-                        </div>
-                    </div>
-
-                    {/* Chart */}
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={activePeriod}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="h-[280px] w-full"
+            {/* Quick Access Control Hub */}
+            <div>
+                <h2 className="text-base font-extrabold text-[#222222] mb-3">Management Modules</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {quickLinks.map((link, idx) => (
+                        <Link
+                            key={idx}
+                            to={link.path}
+                            className="p-4 bg-white rounded-2xl border border-[#EBEBEB] hover:border-[#5A724A] hover:bg-[#BCE2A3]/10 transition-all flex items-center gap-3 group shadow-xs"
                         >
-                            {currentSales?.chart && currentSales.chart.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={currentSales.chart} barSize={26}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#EBEBEB" vertical={false} />
-                                        <XAxis
-                                            dataKey="name"
-                                            axisLine={false}
-                                            tickLine={false}
-                                            tick={{ fill: '#818181', fontSize: 11, fontFamily: 'Plus Jakarta Sans' }}
-                                        />
-                                        <YAxis
-                                            axisLine={false}
-                                            tickLine={false}
-                                            tick={{ fill: '#818181', fontSize: 11, fontFamily: 'Space Mono' }}
-                                            tickFormatter={(v) => `₹${v}`}
-                                        />
-                                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(90,114,74,0.06)' }} />
-                                        <Bar dataKey="sales" fill="#5A724A" radius={[8, 8, 0, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-[#818181]">
-                                    <DollarSign size={36} className="opacity-30 mb-2" />
-                                    <p className="text-xs font-semibold">No sales logged for this timeframe.</p>
+                            <div className="w-10 h-10 rounded-xl bg-[#F8F8F8] border border-[#EBEBEB] flex items-center justify-center text-[#5A724A] group-hover:scale-110 transition-transform">
+                                <link.icon size={18} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="font-bold text-xs text-[#222222] group-hover:text-[#5A724A]">{link.label}</h4>
+                                    <ArrowUpRight size={13} className="text-[#818181] group-hover:text-[#5A724A]" />
                                 </div>
+                                <p className="text-[10px] text-[#818181] truncate">{link.desc}</p>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+            </div>
+
+            {/* 32 Tables Live Floor Snapshot */}
+            <Card className="p-6 bg-white border border-[#EBEBEB] rounded-3xl shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h2 className="text-lg font-bold text-[#222222]">32 Tables Floor Matrix</h2>
+                        <p className="text-[#818181] text-xs">Real-time occupancy status across valid restaurant tables</p>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs">
+                        <span className="flex items-center gap-1.5 text-stone-600">
+                            <span className="w-2.5 h-2.5 rounded-full bg-stone-300" /> Available ({tables.filter(t => t.status === 'available').length})
+                        </span>
+                        <span className="flex items-center gap-1.5 text-emerald-800">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Occupied ({tables.filter(t => t.status === 'occupied').length})
+                        </span>
+                        <span className="flex items-center gap-1.5 text-amber-800">
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Billing ({tables.filter(t => t.status === 'billing').length})
+                        </span>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-11 gap-2 pt-2">
+                    {tables.map(t => (
+                        <Link
+                            key={t.tableId}
+                            to="/admin/tables"
+                            className={clsx(
+                                "p-2 rounded-2xl border text-center transition-transform hover:scale-105 shadow-xs",
+                                t.status === 'billing' ? "bg-amber-100 border-amber-300 text-amber-950" :
+                                t.status === 'occupied' ? "bg-emerald-100 border-emerald-300 text-emerald-950" :
+                                "bg-[#F8F8F8] border-[#EBEBEB] text-[#818181]"
                             )}
-                        </motion.div>
-                    </AnimatePresence>
-                </Card>
-            </motion.div>
+                        >
+                            <span className="block text-xs font-mono font-black">T{t.tableId}</span>
+                            <span className="block text-[8px] uppercase font-bold mt-0.5 truncate">{t.status}</span>
+                        </Link>
+                    ))}
+                </div>
+            </Card>
 
-            {/* AI Insights and Low Stock */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="p-6 lg:col-span-2 bg-white border border-[#EBEBEB] rounded-3xl shadow-[0_4px_20px_rgba(90,114,74,0.05)]">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-lg font-bold text-[#222222]">AI Culinary Insights</h2>
-                        <div className="bg-[#BCE2A3]/30 text-[#425934] border border-[#BCE2A3] px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                            <Activity size={12} /> Live Analysis
+            {/* Sales Overview Section */}
+            <Card className="p-6 bg-white border border-[#EBEBEB] rounded-3xl shadow-xs space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 className="text-lg font-bold text-[#222222]">Sales Overview (A16)</h2>
+                        <p className="text-[#818181] text-xs">Revenue metrics by timeframe</p>
+                    </div>
+                    <div className="flex gap-1 bg-[#F8F8F8] p-1 rounded-full border border-[#EBEBEB] self-start sm:self-auto">
+                        {PERIOD_TABS.map(tab => (
+                            <button
+                                key={tab.key}
+                                onClick={() => setActivePeriod(tab.key)}
+                                className={clsx(
+                                    "flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition-all",
+                                    activePeriod === tab.key
+                                        ? "bg-[#5A724A] text-white shadow-xs"
+                                        : "text-[#818181] hover:text-[#222222]"
+                                )}
+                            >
+                                <tab.icon size={13} />
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Sales Stats Mini Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="bg-[#FAF8F5] p-4 rounded-2xl border border-[#E5E0D8]">
+                        <p className="text-[11px] text-[#818181] uppercase tracking-wider font-bold mb-1">
+                            {activePeriod === 'daily' ? "Today's" : activePeriod === 'weekly' ? "This Week's" : "This Month's"} Revenue
+                        </p>
+                        <h3 className="text-2xl font-mono font-extrabold text-[#5A724A]">
+                            ₹{(currentSales?.total || overview.todayRevenue || 0).toLocaleString()}
+                        </h3>
+                    </div>
+                    <div className="bg-[#FAF8F5] p-4 rounded-2xl border border-[#E5E0D8]">
+                        <p className="text-[11px] text-[#818181] uppercase tracking-wider font-bold mb-1">
+                            {activePeriod === 'daily' ? "Today's" : activePeriod === 'weekly' ? "This Week's" : "This Month's"} Orders
+                        </p>
+                        <h3 className="text-2xl font-mono font-extrabold text-[#222222]">
+                            {currentSales?.orders || overview.todayOrderCount || 0}
+                        </h3>
+                    </div>
+                </div>
+
+                {/* Chart */}
+                <div className="h-[280px] w-full">
+                    {currentSales?.chart && currentSales.chart.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={currentSales.chart} barSize={26}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#EBEBEB" vertical={false} />
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#818181', fontSize: 11 }}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#818181', fontSize: 11 }}
+                                    tickFormatter={(v) => `₹${v}`}
+                                />
+                                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(90,114,74,0.06)' }} />
+                                <Bar dataKey="sales" fill="#5A724A" radius={[8, 8, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-[#818181]">
+                            <DollarSign size={36} className="opacity-30 mb-2" />
+                            <p className="text-xs font-semibold">No sales logged for this timeframe.</p>
                         </div>
+                    )}
+                </div>
+            </Card>
+
+            {/* Bottom Row: Recent Audit Activity & Low Stock */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Recent Activity Log (A20) */}
+                <Card className="p-6 bg-white border border-[#EBEBEB] rounded-3xl shadow-xs space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-extrabold text-sm text-[#222222] flex items-center gap-2">
+                            <ShieldCheck size={18} className="text-[#5A724A]" /> Recent Employee Activity (A20)
+                        </h3>
+                        <Link to="/admin/settings" className="text-xs text-[#5A724A] font-bold hover:underline">
+                            View All Logs
+                        </Link>
                     </div>
 
-                    <div className="space-y-4">
-                        <div className="p-4 bg-[#F8F8F8] rounded-2xl border border-[#EBEBEB]">
-                            <div className="flex items-center justify-between mb-1">
-                                <h3 className="font-bold text-sm text-[#222222] flex items-center gap-2">
-                                    Lunch peak was exceptionally strong <ArrowUpRight size={16} className="text-[#5A724A]" />
-                                </h3>
-                                <span className="text-[11px] font-mono text-[#818181]">14:00</span>
-                            </div>
-                            <p className="text-xs text-[#818181] leading-relaxed">Between 1 PM and 2 PM, 24 guests were served, generating a 15% revenue bump compared to weekly averages.</p>
-                        </div>
-
-                        <div className="p-4 bg-[#F8F8F8] rounded-2xl border border-[#EBEBEB]">
-                            <div className="flex items-center justify-between mb-1">
-                                <h3 className="font-bold text-sm text-[#222222] flex items-center gap-2">
-                                    Gourmet Burgers are trending <Flame size={16} className="text-[#D9822B]" />
-                                </h3>
-                                <span className="text-[11px] font-mono text-[#818181]">11:30</span>
-                            </div>
-                            <p className="text-xs text-[#818181] leading-relaxed">Classic and BBQ burgers were the top sellers, contributing 38% of food revenue with high repeat pairing rates.</p>
-                        </div>
-                    </div>
-                </Card>
-
-                {/* Low Stock Alerts */}
-                <Card className="p-6 bg-white border border-[#EBEBEB] rounded-3xl shadow-[0_4px_20px_rgba(90,114,74,0.05)] flex flex-col">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-lg font-bold text-[#222222] flex items-center gap-2">
-                            <Package size={18} className="text-[#5A724A]" /> Low Stock Alerts
-                        </h2>
-                        {lowStockItems.length > 0 && (
-                            <span className="bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full text-[10px] font-bold">
-                                {lowStockItems.length} Item{lowStockItems.length > 1 ? 's' : ''}
-                            </span>
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        {(overview.recentLogs || []).length === 0 ? (
+                            <p className="text-xs text-[#818181] py-4 text-center">No recent activity logs recorded.</p>
+                        ) : (
+                            overview.recentLogs.map((log, i) => (
+                                <div key={i} className="p-2.5 bg-[#F8F8F8] rounded-xl border border-[#EBEBEB] text-xs flex justify-between items-center">
+                                    <div>
+                                        <p className="font-bold text-[#222222]">{log.action}</p>
+                                        <p className="text-[10px] text-[#818181]">{log.userName || 'Staff'} • {log.role || 'Staff'}</p>
+                                    </div>
+                                    <span className="text-[10px] font-mono text-[#818181]">
+                                        {new Date(log.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </div>
+                            ))
                         )}
                     </div>
+                </Card>
 
-                    {lowStockItems.length === 0 ? (
-                        <div className="flex-1 flex flex-col items-center justify-center py-8 text-center text-[#818181]">
-                            <div className="w-12 h-12 bg-[#BCE2A3]/30 rounded-full flex items-center justify-center text-[#5A724A] mb-3">
-                                <Package size={22} />
-                            </div>
-                            <p className="text-xs font-bold text-[#222222]">Pantry &amp; Herbs Healthy</p>
-                            <p className="text-[11px] text-[#818181] mt-0.5">All tracked inventory items are above safety thresholds.</p>
+                {/* Restaurant Floor Plan Summary (A08) */}
+                <Card className="p-6 bg-white border border-[#EBEBEB] rounded-3xl shadow-xs flex flex-col">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-extrabold text-sm text-[#222222] flex items-center gap-2">
+                            <QrCode size={18} className="text-[#5A724A]" /> Floor Tables (32 Valid Tables)
+                        </h3>
+                        <Link to="/admin/tables" className="text-xs text-[#5A724A] font-bold hover:underline">
+                            Manage Tables
+                        </Link>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                        <div className="p-3 bg-[#F8F8F8] rounded-2xl border border-[#EBEBEB] text-center">
+                            <p className="text-[10px] uppercase font-bold text-[#818181]">Available</p>
+                            <p className="text-lg font-black text-[#5A724A] mt-0.5">
+                                {tables.filter(t => t.tableId !== 13 && (!t.status || t.status === 'available')).length}
+                            </p>
                         </div>
-                    ) : (
-                        <ul className="space-y-3 flex-1 overflow-y-auto max-h-[300px] pr-1">
-                            {lowStockItems.map((item) => {
-                                const isCritical = item.status === 'Critical';
-                                const percentage = Math.round((item.quantity / item.threshold) * 100);
-                                return (
-                                    <motion.li
-                                        key={item._id}
-                                        initial={{ opacity: 0, x: 10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        className={clsx(
-                                            "p-3.5 rounded-2xl border flex gap-3 items-start",
-                                            isCritical ? "bg-red-50/70 border-red-200" : "bg-amber-50/70 border-amber-200"
-                                        )}
-                                    >
-                                        <div className="p-1.5 rounded-full shrink-0 mt-0.5 text-amber-700">
-                                            <AlertTriangle size={15} />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between gap-2 mb-0.5">
-                                                <strong className="block font-bold text-xs text-[#222222] truncate">
-                                                    {item.name}
-                                                </strong>
-                                                <span className={clsx(
-                                                    "text-[9px] font-bold uppercase px-2 py-0.5 rounded-full",
-                                                    isCritical ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"
-                                                )}>
-                                                    {item.status}
-                                                </span>
-                                            </div>
-                                            <p className="text-xs text-[#818181]">
-                                                <span className="font-mono font-bold text-[#222222]">{item.quantity}</span> {item.unit} / {item.threshold} {item.unit} min
-                                            </p>
-                                        </div>
-                                    </motion.li>
-                                );
-                            })}
-                        </ul>
-                    )}
+                        <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-center">
+                            <p className="text-[10px] uppercase font-bold text-amber-800">Occupied</p>
+                            <p className="text-lg font-black text-amber-700 mt-0.5">
+                                {tables.filter(t => t.status === 'occupied').length}
+                            </p>
+                        </div>
+                        <div className="p-3 bg-purple-50 rounded-2xl border border-purple-200 text-center">
+                            <p className="text-[10px] uppercase font-bold text-purple-800">Billing</p>
+                            <p className="text-lg font-black text-purple-700 mt-0.5">
+                                {tables.filter(t => t.status === 'billing').length}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 flex flex-col justify-center bg-[#F4F6F0] p-3.5 rounded-2xl border border-[#EBEBEB]">
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="font-bold text-[#222222]">Valid Floor Capacity</span>
+                            <span className="font-mono text-[#5A724A] font-extrabold">32 Tables (Table 13 Omitted)</span>
+                        </div>
+                        <p className="text-[10px] text-[#818181] mt-1">
+                            Tables 1 to 33 configured with table-specific QR codes and instant cashier settlement release.
+                        </p>
+                    </div>
                 </Card>
             </div>
         </div>
     );
-};
-
-export default AdminDashboard;
+}

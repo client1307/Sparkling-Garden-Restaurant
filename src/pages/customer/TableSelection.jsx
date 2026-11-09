@@ -21,19 +21,24 @@ export default function TableSelection() {
         try {
             const { data } = await api.get(`/tables/status/${tableNumber}`);
 
+            if (data?.tableToken) {
+                localStorage.setItem('tableToken', data.tableToken);
+            }
+
             if (!data.exists) {
                 setError({ type: 'not_found', message: 'This table number was not found. Please verify with our staff.' });
             } else if (data.status === 'occupied') {
                 setError({
                     type: 'occupied',
-                    message: `Table ${tableNumber} is currently occupied. Please wait for the current bill to settle.`,
-                    bill: data.currentBill
+                    message: `Table ${tableNumber} is currently active. You can view your running bill or add more items.`,
+                    bill: data.currentBill,
+                    tableToken: data.tableToken
                 });
             } else if (data.status === 'cleaning') {
                 setError({ type: 'cleaning', message: `Table ${tableNumber} is being prepared & sanitized. One moment please.` });
             } else {
                 // Table is available — navigate to menu
-                navigate(`/table/${tableNumber}/menu`);
+                navigate(`/table/${tableNumber}/menu${data.tableToken ? `?tableToken=${data.tableToken}` : ''}`);
             }
         } catch (err) {
             if (err.response?.status === 404) {
@@ -129,13 +134,22 @@ export default function TableSelection() {
                                             <p className="font-mono font-bold mt-1 text-[#5A724A]">Current tab: ₹{error.bill}</p>
                                         )}
                                         {error.type === 'occupied' && (
-                                            <button
-                                                type="button"
-                                                onClick={() => navigate(`/table/${tableNumber}/menu`)}
-                                                className="mt-2 text-xs font-bold text-[#5A724A] bg-white border border-amber-300 px-3 py-1.5 rounded-full hover:bg-[#5A724A] hover:text-white transition-all shadow-xs inline-block"
-                                            >
-                                                Seated here? View Menu &amp; Order More →
-                                            </button>
+                                            <div className="flex gap-2 mt-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigate(`/table/${tableNumber}/status`)}
+                                                    className="text-xs font-bold text-white bg-[#5A724A] px-3.5 py-1.5 rounded-full hover:bg-[#485D3B] transition-all shadow-xs inline-block"
+                                                >
+                                                    View Live Bill &amp; Status
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigate(`/table/${tableNumber}/menu${error.tableToken ? `?tableToken=${error.tableToken}` : ''}`)}
+                                                    className="text-xs font-bold text-[#5A724A] bg-white border border-[#5A724A] px-3.5 py-1.5 rounded-full hover:bg-[#F4F6F0] transition-all shadow-xs inline-block"
+                                                >
+                                                    Add More Dishes →
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 </div>

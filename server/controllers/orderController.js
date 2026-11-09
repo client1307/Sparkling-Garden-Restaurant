@@ -101,7 +101,7 @@ const createOrder = async (req, res) => {
         // 4. Emit Socket Events
         const io = req.app.get('socketio');
         if (io) {
-            io.emit('new_order', createdOrder);
+            io.to('staff').emit('new_order', createdOrder);
             io.emit('table_update', { tableId: tableNum });
             io.emit('menu_updated');
         }
@@ -143,8 +143,16 @@ const updateOrderStatus = async (req, res) => {
     const { status } = req.body;
     const { id } = req.params;
 
-    // In real auth, we'd get this from req.user
-    const currentRole = 'Kitchen';
+    const allowedStatuses = ['Pending', 'Preparing', 'Ready', 'Served', 'Cancelled', 'Paid'];
+    if (!allowedStatuses.includes(status)) {
+        return res.status(400).json({ message: 'Invalid order status' });
+    }
+    if (status === 'Paid' && !['admin', 'billing'].includes(req.user?.role)) {
+        return res.status(403).json({ message: 'Only billing staff can mark orders as paid' });
+    }
+    if (status !== 'Paid' && req.user?.role === 'billing') {
+        return res.status(403).json({ message: 'Billing staff cannot update kitchen order status' });
+    }
 
     try {
         const order = await Order.findById(id);
@@ -179,7 +187,12 @@ const updateOrderStatus = async (req, res) => {
 
             // Emit Socket Events to ALL screens
             const io = req.app.get('socketio');
-            io.emit('order_status_update', updatedOrder);  // Kitchen, Customer, Admin, Waiter
+            io.to('staff').emit('order_status_update', updatedOrder);
+            io.to(`table-${order.tableNumber}`).emit('order_status_update', {
+                _id: updatedOrder._id,
+                tableNumber: updatedOrder.tableNumber,
+                status: updatedOrder.status
+            });
             io.emit('table_update', { tableId: order.tableNumber }); // Waiter Dashboard tables
 
             // Only remove CANCELLED orders — Paid orders must stay in DB for analytics & revenue tracking.
@@ -249,7 +262,7 @@ const markTablePaid = async (req, res) => {
         // 4. Emit socket events for ALL screens to update
         const io = req.app.get('socketio');
         updatedOrders.forEach(order => {
-            io.emit('order_status_update', order);
+            io.to('staff').emit('order_status_update', order);
         });
         io.emit('table_update', { tableId });
 
@@ -272,10 +285,12 @@ const getTableActiveOrders = async (req, res) => {
             return res.status(400).json({ message: 'Valid table number is required' });
         }
 
-        const orders = await Order.find({
+        const query = {
             tableNumber: tableId,
-            status: { $nin: ['Cancelled'] }
-        }).sort({ createdAt: -1 });
+            status: { $nin: ['Paid', 'Cancelled'] }
+        };
+
+        const orders = await Order.find(query).sort({ createdAt: -1 });
 
         // Filter active (non-paid) or most recent session
         const activeOrders = orders.filter(o => o.status !== 'Paid');

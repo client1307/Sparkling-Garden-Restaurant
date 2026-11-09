@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Local Database
+data/
+data/*
+
 # Environment variables
 .env
 .env.*

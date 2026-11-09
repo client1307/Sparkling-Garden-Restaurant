@@ -3,6 +3,21 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 dotenv.config();
+
+const requiredSeedPasswords = {
+  SEED_ADMIN_PASSWORD: process.env.SEED_ADMIN_PASSWORD,
+  SEED_CHEF_PASSWORD: process.env.SEED_CHEF_PASSWORD,
+  SEED_WAITER_PASSWORD: process.env.SEED_WAITER_PASSWORD,
+  SEED_BILLING_PASSWORD: process.env.SEED_BILLING_PASSWORD
+};
+const missingSeedPasswords = Object.entries(requiredSeedPasswords)
+  .filter(([, password]) => !password)
+  .map(([name]) => name);
+
+if (missingSeedPasswords.length) {
+  throw new Error(`Missing required seed password environment variables: ${missingSeedPasswords.join(', ')}`);
+}
+
 const MenuItem = require('./models/MenuItem');
 const Inventory = require('./models/Inventory');
 const Table = require('./models/Table');
@@ -88,16 +103,18 @@ const RECIPE = {
     }
   }
   console.log(`Menu items: ${n}`);
-  for (let t=1;t<=12;t++) await Table.findOneAndUpdate({tableId:t},{tableId:t,capacity:t<=6?4:6,isActive:true},{upsert:true});
+  await Table.deleteMany({tableId:13});
+  for (const t of [...Array(33).keys()].map(i=>i+1).filter(t=>t!==13)) await Table.findOneAndUpdate({tableId:t},{tableId:t,capacity:t<=6?4:6,isActive:true},{upsert:true});
   console.log('Tables: 12');
   const staff = [
-    ['Admin','admin@sparkling.com',process.env.SEED_ADMIN_PASSWORD||'admin123','admin'],
-    ['Chef','chef@sparkling.com',process.env.SEED_CHEF_PASSWORD||'chef123','kitchen'],
-    ['Waiter','waiter@sparkling.com',process.env.SEED_WAITER_PASSWORD||'waiter123','waiter'],
+    ['Admin','admin@sparkling.com',process.env.SEED_ADMIN_PASSWORD,'admin'],
+    ['Chef','chef@sparkling.com',process.env.SEED_CHEF_PASSWORD,'kitchen'],
+    ['Waiter','waiter@sparkling.com',process.env.SEED_WAITER_PASSWORD,'waiter'],
+    ['Billing','billing@sparkling.com',process.env.SEED_BILLING_PASSWORD,'billing'],
   ];
   for (const [name,email,password,role] of staff) {
     if (!(await User.findOne({email}))) await User.create({name,email,password,role});
   }
-  console.log('Staff users ready. CHANGE the default passwords (or set SEED_*_PASSWORD) before going live.');
+  console.log('Staff users ready.');
   await mongoose.disconnect();
 })().catch(e=>{console.error(e);process.exit(1);});

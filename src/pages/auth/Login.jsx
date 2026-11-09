@@ -1,17 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Lock, User, ChefHat, Shield, ArrowRight, Zap } from 'lucide-react';
+import { Lock, User, ChefHat, Shield, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { login } from '../../services/api';
 import toast from 'react-hot-toast';
-
-const DEMO_CREDENTIALS = {
-    admin: { email: 'admin@sparkling.com', password: 'admin123', label: 'Admin' },
-    waiter: { email: 'waiter@sparkling.com', password: 'waiter123', label: 'Waiter' },
-    kitchen: { email: 'chef@sparkling.com', password: 'chef123', label: 'Kitchen (Chef)' },
-};
 
 const Login = ({ role: roleProp }) => {
     const role = roleProp.toLowerCase();
@@ -27,14 +21,6 @@ const Login = ({ role: roleProp }) => {
         setPassword('');
         setError('');
     }, [role]);
-
-    const handleAutofill = (targetRole = role) => {
-        const cred = DEMO_CREDENTIALS[targetRole] || DEMO_CREDENTIALS.admin;
-        setEmail(cred.email);
-        setPassword(cred.password);
-        setError('');
-        toast.success(`Autofilled ${cred.label} credentials!`, { id: 'autofill' });
-    };
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -66,7 +52,9 @@ const Login = ({ role: roleProp }) => {
             toast.success(`Welcome, ${response.name}!`);
 
             // Redirect based on role
-            if (response.role === 'kitchen') {
+            if (response.role === 'billing') {
+                navigate('/pos');
+            } else if (response.role === 'kitchen') {
                 navigate('/kitchen/dashboard');
             } else if (response.role === 'waiter') {
                 navigate('/waiter/dashboard');
@@ -151,25 +139,6 @@ const Login = ({ role: roleProp }) => {
                     <h1 className="text-2xl font-extrabold text-[#222222] tracking-tight">{roleProp} Portal</h1>
                     <p className="text-[#818181] mt-0.5 text-xs">Sign in to authenticate with staff credentials</p>
                 </motion.div>
-
-                {/* Autofill Credentials Box */}
-                <div className="mb-5 p-3.5 bg-[#F8FAF6] border border-[#BCE2A3] rounded-2xl flex items-center justify-between gap-3">
-                    <div className="text-left text-xs min-w-0">
-                        <span className="font-bold text-[#425934] block text-[11px] uppercase tracking-wider">Demo Credentials</span>
-                        <div className="text-xs text-[#5A724A] font-mono truncate font-semibold mt-0.5">
-                            {DEMO_CREDENTIALS[role]?.email}
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => handleAutofill(role)}
-                        className="px-3.5 py-1.5 bg-[#5A724A] hover:bg-[#485D3B] text-white text-xs font-bold rounded-full transition-colors shrink-0 shadow-xs flex items-center gap-1.5 cursor-pointer"
-                        title="Click to automatically fill credentials"
-                    >
-                        <Zap size={13} className="text-amber-300 fill-amber-300" />
-                        Autofill
-                    </button>
-                </div>
 
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-1.5">

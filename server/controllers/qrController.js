@@ -2,6 +2,7 @@ const QRCode = require('qrcode');
 const PDFDocument = require('pdfkit');
 const Table = require('../models/Table');
 const os = require('os');
+const { capabilityForTable } = require('../utils/tableCapability');
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -91,7 +92,7 @@ const generateSingleQR = async (req, res) => {
         }
 
         const frontendUrl = getFrontendUrl(req);
-        const url = `${frontendUrl}/table/${tableId}/menu`;
+        const url = `${frontendUrl}/table/${tableId}/menu?tableToken=${capabilityForTable(tableId)}`;
         const qrImage = await QRCode.toDataURL(url, QR_OPTIONS);
 
         res.json({
@@ -114,7 +115,7 @@ const generateAllQRs = async (req, res) => {
 
         const qrCodes = await Promise.all(
             tables.map(async (table) => {
-                const url = `${frontendUrl}/table/${table.tableId}/menu`;
+                const url = `${frontendUrl}/table/${table.tableId}/menu?tableToken=${capabilityForTable(table.tableId)}`;
                 const qrImage = await QRCode.toDataURL(url, QR_OPTIONS);
                 return {
                     qrImage,
@@ -146,7 +147,7 @@ const downloadQRPdf = async (req, res) => {
         // Generate QR code buffers for all tables
         const qrData = await Promise.all(
             tables.map(async (table) => {
-                const url = `${frontendUrl}/table/${table.tableId}/menu`;
+                const url = `${frontendUrl}/table/${table.tableId}/menu?tableToken=${capabilityForTable(table.tableId)}`;
                 const buffer = await QRCode.toBuffer(url, {
                     ...QR_OPTIONS,
                     type: 'png',

@@ -2,10 +2,12 @@ const mongoose = require('mongoose');
 
 const activityLogSchema = mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    role: { type: String }, // Admin, Kitchen
-    action: { type: String, required: true }, // e.g., "Updated Menu", "Accepted Order"
-    entityType: { type: String }, // Order, Menu, Inventory
+    userName: { type: String },
+    role: { type: String }, // admin, billing, waiter, kitchen
+    action: { type: String, required: true }, // e.g., "Updated Menu", "Accepted Order", "Discount Authorized"
+    entityType: { type: String }, // Order, Bill, Menu, Table, User, System, Printer
     entityId: { type: String },
+    details: { type: mongoose.Schema.Types.Mixed },
     timestamp: { type: Date, default: Date.now }
 });
 

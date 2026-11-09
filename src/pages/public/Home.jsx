@@ -433,9 +433,9 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-xs">
             <span className="font-bold text-[#222222] uppercase tracking-wider text-[11px]">Staff Access:</span>
             <div className="flex flex-wrap items-center justify-center gap-2">
+              <Link to="/pos/login" className="px-3 py-1 bg-[#F4F6F0] hover:bg-[#5A724A] hover:text-white rounded-full font-bold text-[#5A724A] transition-colors">Cashier POS</Link>
               <Link to="/admin/login" className="px-3 py-1 bg-[#F4F6F0] hover:bg-[#5A724A] hover:text-white rounded-full font-bold text-[#5A724A] transition-colors">Admin Login</Link>
               <Link to="/waiter/login" className="px-3 py-1 bg-[#F4F6F0] hover:bg-[#5A724A] hover:text-white rounded-full font-bold text-[#5A724A] transition-colors">Waiter Login</Link>
-              <Link to="/kitchen/login" className="px-3 py-1 bg-[#F4F6F0] hover:bg-[#5A724A] hover:text-white rounded-full font-bold text-[#5A724A] transition-colors">Kitchen Login</Link>
               <Link to="/portal" className="px-3 py-1 bg-[#F4F6F0] hover:bg-[#222222] hover:text-white rounded-full font-semibold text-[#818181] transition-colors">Portal Overview</Link>
             </div>
           </div>

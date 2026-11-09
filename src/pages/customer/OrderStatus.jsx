@@ -44,6 +44,7 @@ const OrderStatus = () => {
         fetchTableBill();
 
         const tableNumber = parseInt(tableId, 10);
+        socket.emit('join_table', tableNumber);
         
         socket.on('order_status_update', (updatedOrder) => {
             if (Number(updatedOrder.tableNumber) === tableNumber) {

@@ -21,6 +21,25 @@ const path = require('path');
 dotenv.config({ path: path.join(__dirname, '.env') });
 dotenv.config(); // fallback to root .env if present
 
+const isProd = process.env.NODE_ENV === 'production';
+
+// Safe development defaults so developers/cloners can run without crashing
+if (!process.env.JWT_SECRET) {
+    if (isProd) {
+        throw new Error('JWT_SECRET must be configured in production (minimum 32 characters)');
+    }
+    process.env.JWT_SECRET = '4f8b9a1e3c5d7f2a6b8c0e1d3f5a7b9c2e4d6f8a0b1c3d5e7f9a2b4c6d8e0f1a';
+    console.warn('⚠️ No JWT_SECRET configured in .env; using development default secret.');
+}
+
+if (!process.env.PRINT_AGENT_KEY) {
+    if (isProd) {
+        throw new Error('PRINT_AGENT_KEY must be configured in production (minimum 32 characters)');
+    }
+    process.env.PRINT_AGENT_KEY = '9a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b';
+    console.warn('⚠️ No PRINT_AGENT_KEY configured in .env; using development default print agent key.');
+}
+
 const requiredSecrets = {
     JWT_SECRET: process.env.JWT_SECRET,
     PRINT_AGENT_KEY: process.env.PRINT_AGENT_KEY
@@ -29,8 +48,8 @@ const invalidSecrets = Object.entries(requiredSecrets)
     .filter(([name, value]) => !value || value.startsWith('replace_with_') || value.length < 32)
     .map(([name]) => name);
 
-if (invalidSecrets.length) {
-    throw new Error(`Missing or insecure required secrets: ${invalidSecrets.join(', ')}`);
+if (invalidSecrets.length && isProd) {
+    throw new Error(`Missing or insecure required secrets in production: ${invalidSecrets.join(', ')}`);
 }
 
 connectDB(); // Connect to MongoDB

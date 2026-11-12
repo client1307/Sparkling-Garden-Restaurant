@@ -76,6 +76,39 @@ export default function PosDesktop() {
     const [countedCash, setCountedCash] = useState('');
     const [reconciliationNotes, setReconciliationNotes] = useState('');
 
+    // PWA 1-Click Install state (Option 1)
+    const [deferredPrompt, setDeferredPrompt] = useState(null);
+    const [isInstalled, setIsInstalled] = useState(false);
+
+    useEffect(() => {
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            setIsInstalled(true);
+        }
+        const handler = (e) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        window.addEventListener('appinstalled', () => {
+            setIsInstalled(true);
+            setDeferredPrompt(null);
+            toast.success('Sparkling POS installed to desktop!');
+        });
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    const handleInstallPwa = async () => {
+        if (!deferredPrompt) {
+            toast('To install in Chrome or Edge, click the 💻 Install icon in the browser address bar.', { icon: '💻', duration: 6000 });
+            return;
+        }
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
+
     // Fetch floor tables and summary stats
     const loadFloorData = useCallback(async () => {
         try {
@@ -400,6 +433,17 @@ export default function PosDesktop() {
                                 <span className="text-sm font-mono font-bold text-amber-700">₹{stats.activeTabsTotal.toFixed(2)}</span>
                             </div>
                         </div>
+
+                        {/* PWA 1-Click Desktop Install Button */}
+                        {!isInstalled && (
+                            <button
+                                onClick={handleInstallPwa}
+                                className="bg-[#5A724A] hover:bg-[#485D3B] text-white px-3.5 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                                title="1-Click Install to Desktop (Chrome / Edge)"
+                            >
+                                <Download size={14} /> Install POS App
+                            </button>
+                        )}
 
                         {/* Failed Print Alert */}
                         {failedPrintJobs.length > 0 && (

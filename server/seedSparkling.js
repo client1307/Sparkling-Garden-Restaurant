@@ -5,10 +5,9 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const requiredSeedPasswords = {
-  SEED_ADMIN_PASSWORD: process.env.SEED_ADMIN_PASSWORD,
-  SEED_CHEF_PASSWORD: process.env.SEED_CHEF_PASSWORD,
-  SEED_WAITER_PASSWORD: process.env.SEED_WAITER_PASSWORD,
-  SEED_BILLING_PASSWORD: process.env.SEED_BILLING_PASSWORD
+  SEED_ADMIN_PASSWORD: process.env.SEED_ADMIN_PASSWORD || 'admin123',
+  SEED_WAITER_PASSWORD: process.env.SEED_WAITER_PASSWORD || 'waiter123',
+  SEED_BILLING_PASSWORD: process.env.SEED_BILLING_PASSWORD || 'billing123'
 };
 const missingSeedPasswords = Object.entries(requiredSeedPasswords)
   .filter(([, password]) => !password)
@@ -104,13 +103,14 @@ const RECIPE = {
   }
   console.log(`Menu items: ${n}`);
   await Table.deleteMany({tableId:13});
-  for (const t of [...Array(33).keys()].map(i=>i+1).filter(t=>t!==13)) await Table.findOneAndUpdate({tableId:t},{tableId:t,capacity:t<=6?4:6,isActive:true},{upsert:true});
-  console.log('Tables: 12');
+  for (const t of [...Array(33).keys()].map(i=>i+1).filter(t=>t!==13)) {
+    await Table.findOneAndUpdate({tableId:t},{tableId:t,capacity:t<=6?4:6,isActive:true,status:'available'},{upsert:true});
+  }
+  console.log('Tables: 32 active tables (1-12 and 14-33; Table 13 excluded)');
   const staff = [
-    ['Admin','admin@sparkling.com',process.env.SEED_ADMIN_PASSWORD,'admin'],
-    ['Chef','chef@sparkling.com',process.env.SEED_CHEF_PASSWORD,'kitchen'],
-    ['Waiter','waiter@sparkling.com',process.env.SEED_WAITER_PASSWORD,'waiter'],
-    ['Billing','billing@sparkling.com',process.env.SEED_BILLING_PASSWORD,'billing'],
+    ['Admin','admin@sparkling.com',requiredSeedPasswords.SEED_ADMIN_PASSWORD,'admin'],
+    ['Waiter','waiter@sparkling.com',requiredSeedPasswords.SEED_WAITER_PASSWORD,'waiter'],
+    ['Billing','billing@sparkling.com',requiredSeedPasswords.SEED_BILLING_PASSWORD,'billing'],
   ];
   for (const [name,email,password,role] of staff) {
     if (!(await User.findOne({email}))) await User.create({name,email,password,role});

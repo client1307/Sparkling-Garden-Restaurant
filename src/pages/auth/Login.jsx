@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Lock, User, ChefHat, Shield, ArrowRight } from 'lucide-react';
+import { Lock, User, Shield, ArrowRight, Receipt } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -115,14 +115,14 @@ const Login = ({ role: roleProp }) => {
                         Waiter
                     </Link>
                     <Link
-                        to="/kitchen/login"
+                        to="/pos/login"
                         className={`py-2 text-xs font-bold rounded-xl text-center transition-all ${
-                            role === 'kitchen'
+                            role === 'billing'
                                 ? 'bg-[#5A724A] text-white shadow-xs'
                                 : 'text-[#818181] hover:text-[#222222] hover:bg-white/60'
                         }`}
                     >
-                        Kitchen
+                        Billing
                     </Link>
                 </div>
 
@@ -134,7 +134,7 @@ const Login = ({ role: roleProp }) => {
                     className="text-center mb-6"
                 >
                     <div className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center mb-3 bg-[#BCE2A3]/35 text-[#425934] border border-[#BCE2A3] shadow-xs">
-                        {role === 'kitchen' ? <ChefHat size={26} /> : role === 'admin' ? <Shield size={26} /> : <User size={26} />}
+                        {role === 'billing' ? <Receipt size={26} /> : role === 'admin' ? <Shield size={26} /> : <User size={26} />}
                     </div>
                     <h1 className="text-2xl font-extrabold text-[#222222] tracking-tight">{roleProp} Portal</h1>
                     <p className="text-[#818181] mt-0.5 text-xs">Sign in to authenticate with staff credentials</p>
@@ -195,7 +195,7 @@ const Login = ({ role: roleProp }) => {
                         <span>•</span>
                         <Link to="/waiter/login" className={`hover:underline ${role === 'waiter' ? 'font-bold text-[#5A724A]' : ''}`}>Waiter</Link>
                         <span>•</span>
-                        <Link to="/kitchen/login" className={`hover:underline ${role === 'kitchen' ? 'font-bold text-[#5A724A]' : ''}`}>Kitchen</Link>
+                        <Link to="/pos/login" className={`hover:underline ${role === 'billing' ? 'font-bold text-[#5A724A]' : ''}`}>Billing</Link>
                         <span>•</span>
                         <Link to="/portal" className="hover:underline font-semibold">Portal</Link>
                     </div>

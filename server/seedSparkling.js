@@ -107,6 +107,7 @@ const RECIPE = {
     await Table.findOneAndUpdate({tableId:t},{tableId:t,capacity:t<=6?4:6,isActive:true,status:'available'},{upsert:true});
   }
   console.log('Tables: 32 active tables (1-12 and 14-33; Table 13 excluded)');
+  await User.deleteMany({ $or: [{ role: 'kitchen' }, { email: 'chef@sparkling.com' }] });
   const staff = [
     ['Admin','admin@sparkling.com',requiredSeedPasswords.SEED_ADMIN_PASSWORD,'admin'],
     ['Waiter','waiter@sparkling.com',requiredSeedPasswords.SEED_WAITER_PASSWORD,'waiter'],

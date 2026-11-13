@@ -110,7 +110,7 @@ const generateSingleQR = async (req, res) => {
 // @route   GET /api/qr/all
 const generateAllQRs = async (req, res) => {
     try {
-        const tables = await Table.find({ isActive: true }).sort({ tableId: 1 });
+        const tables = await Table.find({ isActive: true, tableId: { $ne: 13 } }).sort({ tableId: 1 });
         const frontendUrl = getFrontendUrl(req);
 
         const qrCodes = await Promise.all(
@@ -136,7 +136,7 @@ const generateAllQRs = async (req, res) => {
 // @route   GET /api/qr/download-pdf
 const downloadQRPdf = async (req, res) => {
     try {
-        const tables = await Table.find({ isActive: true }).sort({ tableId: 1 });
+        const tables = await Table.find({ isActive: true, tableId: { $ne: 13 } }).sort({ tableId: 1 });
 
         if (tables.length === 0) {
             return res.status(404).json({ message: 'No active tables found' });

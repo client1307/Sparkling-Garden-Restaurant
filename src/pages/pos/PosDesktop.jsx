@@ -3,7 +3,7 @@ import {
     Receipt, Users, Search, Plus, Minus, Trash2, 
     Printer, CheckCircle, Clock, ShieldCheck, RefreshCw, 
     X, Download, Filter, AlertTriangle, Lock, 
-    Calendar, FileText, ArrowRight, DollarSign, Wallet, Eye
+    Calendar, FileText, ArrowRight, DollarSign, Wallet, Eye, LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
@@ -444,6 +444,19 @@ export default function PosDesktop() {
                                 <Download size={14} /> Install POS App
                             </button>
                         )}
+
+                        {/* Cashier Sign Out */}
+                        <button
+                            onClick={() => {
+                                localStorage.removeItem('token');
+                                localStorage.removeItem('user');
+                                window.location.href = '/pos/login';
+                            }}
+                            className="bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs"
+                            title="Sign out of POS session"
+                        >
+                            <LogOut size={14} /> Logout
+                        </button>
 
                         {/* Failed Print Alert */}
                         {failedPrintJobs.length > 0 && (

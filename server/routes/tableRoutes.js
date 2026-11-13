@@ -6,9 +6,23 @@ const { capabilityForTable } = require('../utils/tableCapability');
 
 // @desc    Get all tables (Staff access)
 // @route   GET /api/tables
-router.get('/', protect, authorize('admin', 'waiter', 'kitchen', 'billing'), async (req, res) => {
+router.get('/', protect, authorize('admin', 'waiter', 'billing'), async (req, res) => {
     try {
-        const tables = await Table.find({ isActive: true });
+        let tables = await Table.find({ isActive: true, tableId: { $ne: 13 } }).sort({ tableId: 1 });
+        if (tables.length < 32) {
+            for (let i = 1; i <= 33; i++) {
+                if (i === 13) {
+                    await Table.deleteMany({ tableId: 13 });
+                    continue;
+                }
+                await Table.findOneAndUpdate(
+                    { tableId: i },
+                    { tableId: i, capacity: i <= 6 ? 4 : 6, isActive: true, status: 'available' },
+                    { upsert: true, new: true }
+                );
+            }
+            tables = await Table.find({ isActive: true, tableId: { $ne: 13 } }).sort({ tableId: 1 });
+        }
         res.json(tables);
     } catch (error) {
         res.status(500).json({ message: error.message });

@@ -209,7 +209,7 @@ export default function AdminStaff() {
                 </div>
 
                 <div className="flex items-center gap-1 bg-[#F8F8F8] p-1 rounded-full border border-[#EBEBEB]">
-                    {['all', 'admin', 'billing', 'waiter', 'kitchen'].map(role => (
+                    {['all', 'admin', 'billing', 'waiter'].map(role => (
                         <button
                             key={role}
                             onClick={() => setRoleFilter(role)}
@@ -417,8 +417,8 @@ export default function AdminStaff() {
                             {/* Role Selection (A11) */}
                             <div>
                                 <label className="text-[11px] font-bold text-[#818181] uppercase block mb-1.5">Assigned Staff Role (A11) *</label>
-                                <div className="grid grid-cols-4 gap-2">
-                                    {['waiter', 'billing', 'kitchen', 'admin'].map((role) => (
+                                <div className="grid grid-cols-3 gap-2">
+                                    {['waiter', 'billing', 'admin'].map((role) => (
                                         <button
                                             type="button"
                                             key={role}

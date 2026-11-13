@@ -233,6 +233,19 @@ const placeOrder = (source) => async (req, res) => {
 
 // GET /api/pos/tables: all tables or occupied tables with open orders + bill
 const occupied = async (req, res) => {
+  if (req.query.all === 'true') {
+    const activeCount = await Table.countDocuments({ isActive: true, tableId: { $ne: 13 } });
+    if (activeCount < 32) {
+      for (let i = 1; i <= 33; i++) {
+        if (i === 13) { await Table.deleteMany({ tableId: 13 }); continue; }
+        await Table.findOneAndUpdate(
+          { tableId: i },
+          { tableId: i, capacity: i <= 6 ? 4 : 6, isActive: true, status: 'available' },
+          { upsert: true, new: true }
+        );
+      }
+    }
+  }
   const filter = req.query.all === 'true' 
     ? { isActive: true, tableId: { $ne: 13 } } 
     : { isActive: true, status: { $in: ['occupied', 'billing'] }, tableId: { $ne: 13 } };
